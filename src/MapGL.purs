@@ -31,11 +31,11 @@ instance showViewport :: Show Viewport where
 -- | A handler to be run whenever the viewport changes
 type OnChangeViewport eff = EffFn1 eff Viewport Unit
 
-foreign import data LatLng :: Type
+foreign import data LngLat :: Type
 
-foreign import lat :: LatLng -> Number
+foreign import lat :: LngLat -> Number
 
-foreign import lng :: LatLng -> Number
+foreign import lng :: LngLat -> Number
 
 -- | The type exposed by the picking engine (abbreviated).
 -- | - `latLng`: The latitude and longitude of the point picked.
