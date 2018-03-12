@@ -7,6 +7,7 @@ for [mapbox-gl-js](https://github.com/mapbox/mapbox-gl-js). Additionally, react-
 
 ## Example
 To see an example of a purescript-react component using the `mapGL` component, see the `example` directory and build instructions.
+It is also hosted [here](https://f-o-a-m.github.io/purescript-react-map-gl/)
 
 ## npm Requirements
 - react >= 16.0.0

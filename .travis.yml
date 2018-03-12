@@ -5,7 +5,7 @@ node_js: stable
 install:
   - cd example; npm i
 script:
-  - cd example; npm run -s build
+  - npm run -s build
 deploy:
   provider: pages
   skip_cleanup: true
