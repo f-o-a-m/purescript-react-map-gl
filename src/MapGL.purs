@@ -40,7 +40,7 @@ foreign import lng :: LatLng -> Number
 -- | The type exposed by the picking engine (abbreviated).
 -- | - `latLng`: The latitude and longitude of the point picked.
 type ClickInfo =
-  { latLng :: LatLng
+  { lngLat :: LngLat
   }
 
 -- | A handler to run when the picking engine fires.

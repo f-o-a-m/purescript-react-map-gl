@@ -18,6 +18,7 @@ import Partial.Unsafe (unsafePartial)
 import React as R
 import React.DOM as D
 import ReactDOM (render)
+import Unsafe.Coerce (unsafeCoerce)
 
 
 main :: forall eff. Eff (dom :: DOM | eff) Unit
@@ -41,7 +42,8 @@ mapSpec = R.spec' (const initialViewport) render
                                  log $ "Changed Viewport: " <> show newVp
                                  void $ R.writeState this newVp
                             , onClick: mkEffFn1 $ \info -> do
-                                 log $ "Clicked map: (" <> show (MapGL.lat info.latLng) <> ", " <> show (MapGL.lng info.latLng) <> ")"
+                                 log $ unsafeCoerce info
+                                 log $ "Clicked map: (" <> show (MapGL.lat info.lngLat) <> ", " <> show (MapGL.lng info.lngLat) <> ")"
                             , mapStyle: mapStyle
                             , mapboxApiAccessToken: mapboxApiAccessToken
                             }
