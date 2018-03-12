@@ -3,7 +3,7 @@
   "private": true,
   "dependencies": {
     "purescript-react": "^5.1.0",
-    "purescript-react-map-gl": "./..#master",
+    "purescript-react-map-gl": "../#latest",
     "purescript-dom": "^4.15.0",
     "purescript-record": "^0.2.6",
     "purescript-react-dom": "^5.0.0"
