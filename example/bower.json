@@ -1,0 +1,8 @@
+{
+  "name": "icon",
+  "private": true,
+  "dependencies": {
+    "purescript-react": "^5.1.0",
+    "purescript-react-map-gl": "./..#initial-branch"
+  }
+}
