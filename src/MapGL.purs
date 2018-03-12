@@ -57,7 +57,7 @@ type MapProps eff =
   , onChangeViewport :: OnChangeViewport eff
   , onClick :: OnClickMap eff
   , mapStyle :: String
-  , mapboxApiToken :: String
+  , mapboxApiAccessToken :: String
   }
 
 foreign import mapGL :: forall eff. R.ReactClass (MapProps eff)
