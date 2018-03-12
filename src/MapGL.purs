@@ -43,6 +43,7 @@ type ClickInfo =
   { latLng :: LatLng
   }
 
+-- | A handler to run when the picking engine fires.
 type OnClickMap eff = EffFn1 eff ClickInfo Unit
 
 type MapProps eff =
@@ -59,5 +60,5 @@ type MapProps eff =
   , mapboxApiToken :: String
   }
 
-foreign import mapGL :: forall props. R.ReactClass props
+foreign import mapGL :: forall eff. R.ReactClass (MapProps eff)
 
