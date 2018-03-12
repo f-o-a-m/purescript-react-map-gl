@@ -3,6 +3,7 @@
   "private": true,
   "dependencies": {
     "purescript-react": "^5.1.0",
-    "purescript-react-map-gl": "./..#initial-branch"
+    "purescript-react-map-gl": "./..#initial-branch",
+    "purescript-dom": "^4.15.0"
   }
 }
