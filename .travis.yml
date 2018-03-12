@@ -1,0 +1,17 @@
+language: node_js
+dist: trusty
+sudo: required
+node_js: stable
+install:
+  - cd example
+  - npm i
+script:
+  - cd example
+  - npm run -s build
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN # Set in travis-ci.org dashboard
+  local_dir: example/dist
+  on:
+    branch: master
