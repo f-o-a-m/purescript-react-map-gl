@@ -1,0 +1,28 @@
+{
+  "name": "purescript-react-map-gl",
+  "version": "0.1.0",
+  "description": "purescript wrappers for react-map-gl",
+  "main": "index.js",
+  "directories": {
+    "example": "example"
+  },
+  "dependencies": {
+    "react": "^16.0.0",
+    "react-map-gl": "^3.2.1",
+    "save": "^2.3.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/f-o-a-m/purescript-react-map-gl.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/f-o-a-m/purescript-react-map-gl/issues"
+  },
+  "homepage": "https://github.com/f-o-a-m/purescript-react-map-gl#readme"
+}
