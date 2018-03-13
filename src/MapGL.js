@@ -2,10 +2,16 @@ const MapGL = require('react-map-gl');
 
 exports.mapGL = MapGL.default;
 
-exports.lat = function (latLng) {
-    return latLng[1];
+exports.lat = function (lngLat) {
+    return lngLat[1];
 };
 
-exports.lng = function (latLng) {
-    return latLng[0];
+exports.lng = function (lngLat) {
+    return lngLat[0];
+};
+
+exports.makeLngLat = function (lng) {
+    return function (lat) {
+        return [lng, lat];
+    };
 };

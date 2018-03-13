@@ -34,8 +34,8 @@ type OnChangeViewport eff = EffFn1 eff Viewport Unit
 foreign import data LngLat :: Type
 
 foreign import lat :: LngLat -> Number
-
 foreign import lng :: LngLat -> Number
+foreign import makeLngLat :: Number -> Number -> LngLat
 
 -- | The type exposed by the picking engine (abbreviated).
 -- | - `latLng`: The latitude and longitude of the point picked.
