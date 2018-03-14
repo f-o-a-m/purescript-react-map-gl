@@ -13,6 +13,9 @@
     "purescript-generics-rep": "^5.4.0"
   },
   "devDependencies": {
-    "purescript-psci-support": "^3.0.0"
+    "purescript-psci-support": "^3.0.0",
+    "purescript-dom": "^4.15.0",
+    "purescript-record": "^0.2.6",
+    "purescript-react-dom": "^5.0.0"
   }
 }

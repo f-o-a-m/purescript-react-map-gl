@@ -3,9 +3,10 @@ dist: trusty
 sudo: required
 node_js: stable
 install:
-  - cd example; npm i
+  - npm i
+  - npm run build
 script:
-  - npm run -s build
+  - npm run -s example
 deploy:
   provider: pages
   skip_cleanup: true
