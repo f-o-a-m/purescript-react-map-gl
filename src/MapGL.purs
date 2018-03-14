@@ -87,4 +87,3 @@ type MapProps eff =
   }
 
 foreign import mapGL :: forall eff. R.ReactClass (MapProps eff)
-
