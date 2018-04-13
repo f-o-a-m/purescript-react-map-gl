@@ -5,8 +5,6 @@ import Control.Monad.Eff.Console (CONSOLE, log)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Uncurried (mkEffFn1)
 import Data.Maybe (fromJust)
-import Data.Newtype (unwrap)
-import Data.Record.Builder (merge, build)
 import DOM (DOM)
 import DOM.HTML (window)
 import DOM.HTML.Types (htmlDocumentToDocument)
@@ -32,21 +30,20 @@ main = void  $ elm' >>= render (R.createFactory mapClass unit)
 mapClass :: forall props . R.ReactClass props
 mapClass = R.createClass mapSpec
 
-mapSpec ::  forall props eff . R.ReactSpec props MapGL.Viewport R.ReactElement (console :: CONSOLE, dom :: DOM | eff)
+mapSpec :: forall props eff . R.ReactSpec props MapGL.Viewport R.ReactElement (console :: CONSOLE, dom :: DOM | eff)
 mapSpec = R.spec' (const initialViewport) render
   where
-    render this = do
-      let mapProps' = merge { onChangeViewport: mkEffFn1 $ \newVp -> do
-                                 log $ "Changed Viewport: " <> show newVp
-                                 void $ R.writeState this newVp
-                            , onClick: mkEffFn1 $ \info -> do
-                                 log $ "Clicked map: (" <> show (MapGL.lng info.lngLat) <> ", " <> show (MapGL.lat info.lngLat) <> ")"
-                            , mapStyle: mapStyle
-                            , mapboxApiAccessToken: mapboxApiAccessToken
-                            }
-      vp <- unwrap <$> R.readState this
-      let mapProps = build mapProps' vp
-      pure $ R.createFactory MapGL.mapGL mapProps
+    render this = R.readState this <#> \vp ->
+      R.createFactory MapGL.mapGL $
+        MapGL.mkProps vp
+          { onChangeViewport: mkEffFn1 $ \newVp -> do
+              log $ "Changed Viewport: " <> show newVp
+              void $ R.writeState this newVp
+          , onClick: mkEffFn1 $ \info -> do
+              log $ "Clicked map: (" <> show (MapGL.lng info.lngLat) <> ", " <> show (MapGL.lat info.lngLat) <> ")"
+          , mapStyle: mapStyle
+          , mapboxApiAccessToken: mapboxApiAccessToken
+          }
 
 initialViewport :: forall eff . Eff (dom :: DOM | eff) MapGL.Viewport
 initialViewport = do
