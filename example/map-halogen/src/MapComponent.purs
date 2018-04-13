@@ -34,7 +34,7 @@ import ReactDOM (render) as RDOM
 
 type MapState = Maybe (Bus.BusW Commands)
 
-data MapProps = Unit
+type MapProps = Unit
 
 data MapQuery a
   = Initialize a
