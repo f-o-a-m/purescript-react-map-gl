@@ -1,5 +1,6 @@
 {
   "name": "purescript-react-map-gl",
+  "description": "purescript wrappers for react-map-gl",
   "ignore": [
     "**/.*",
     "node_modules",
