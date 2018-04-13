@@ -23,7 +23,7 @@
   "scripts": {
     "postinstall": "bower i",
     "build": "pulp build",
-    "example": "pulp browserify --include example/src --to example/dist/example.js",
+    "example": "pulp browserify --include example/map/src --to example/map/dist/example.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
