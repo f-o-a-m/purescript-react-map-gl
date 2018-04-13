@@ -5,7 +5,7 @@ You can build this from the root directory
 ```bash
 > npm i
 > npm run build
-> npm run example
+> npm run example-map-halogen
 ```
 
 or in this directory
