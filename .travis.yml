@@ -4,13 +4,16 @@ sudo: required
 node_js: stable
 install:
   - npm i
-  - npm run build
+  - bower i --production
 script:
-  - npm run -s example
+  - npm run build
+  - bower i
+  - npm run example-map
+  - npm run example-map-halogen
 deploy:
   provider: pages
   skip_cleanup: true
   github_token: $GITHUB_TOKEN # Set in travis-ci.org dashboard
-  local_dir: example/dist
+  local_dir: example/map/dist
   on:
     branch: master

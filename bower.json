@@ -1,5 +1,6 @@
 {
   "name": "purescript-react-map-gl",
+  "description": "purescript wrappers for react-map-gl",
   "ignore": [
     "**/.*",
     "node_modules",
@@ -10,12 +11,15 @@
     "purescript-prelude": "^3.1.1",
     "purescript-console": "^3.0.0",
     "purescript-react": "^5.1.0",
-    "purescript-generics-rep": "^5.4.0"
+    "purescript-generics-rep": "^5.4.0",
+    "purescript-record": "^0.2.6"
   },
   "devDependencies": {
     "purescript-psci-support": "^3.0.0",
     "purescript-dom": "^4.15.0",
     "purescript-record": "^0.2.6",
-    "purescript-react-dom": "^5.0.0"
+    "purescript-react-dom": "^5.0.0",
+    "purescript-halogen": "^3.1.3",
+    "purescript-aff-bus": "^3.1.0"
   }
 }
