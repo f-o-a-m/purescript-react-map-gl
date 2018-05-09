@@ -83,20 +83,20 @@ mapComponent =
       pure next
     HandleMessages msg next -> do
       case msg of
-        IsInitialised bus -> H.put $ Just bus
-        PublicMsg msg -> H.raise msg
+        IsInitialized bus -> H.put $ Just bus
+        PublicMsg msg' -> H.raise msg'
       pure next
     SetViewport vp next -> do
       mbBus <- H.get
       case mbBus of
-        Nothing -> unsafeCrashWith "At this point bus must be in state"
+        Nothing -> unsafeCrashWith "At this point bus must be in state from eval SetViewport"
         Just bus -> do
           liftAff $ Bus.write (SetViewport' vp) bus
       pure next
     AskViewport reply -> do
       mbBus <- H.get
       case mbBus of
-        Nothing -> unsafeCrashWith "At this point bus must be in state"
+        Nothing -> unsafeCrashWith "At this point bus must be in state from eval AskViewport"
         Just bus -> do
           var <- liftAff makeEmptyVar
           liftAff $ Bus.write (AskViewport' var) bus
@@ -108,7 +108,7 @@ data Commands
   | AskViewport' (AVar Viewport)
 
 data Messages
-  = IsInitialised (Bus.BusW Commands)
+  = IsInitialized (Bus.BusW Commands)
   | PublicMsg MapMessages
 
 type Props =
@@ -163,23 +163,23 @@ mapClass = R.createClass spec
           , mapboxApiAccessToken: mapboxApiAccessToken
           }
 
-initialState :: forall eff. R.GetInitialState Props State (dom :: DOM, avar :: AVAR | eff)
-initialState this = do
-  command <- Bus.make
-  { messages, width, height } <- R.getProps this
-  launchAff_ $ Bus.write (IsInitialised $ snd $ Bus.split command) messages
-  pure
-    { viewport: MapGL.Viewport
-      { width
-      , height
-      , longitude: -74.00539284665783
-      , latitude: 40.70544878575082
-      , zoom: 10.822714855509464
-      , pitch: 0.0
-      , bearing: 0.0
-      }
-    , command
-    }
+    initialState :: forall eff. R.GetInitialState Props State (dom :: DOM, avar :: AVAR | eff)
+    initialState this = do
+      command <- Bus.make
+      { messages, width, height } <- R.getProps this
+      launchAff_ $ Bus.write (IsInitialized $ snd $ Bus.split command) messages
+      pure
+        { viewport: MapGL.Viewport
+          { width
+          , height
+          , longitude: -74.00539284665783
+          , latitude: 40.70544878575082
+          , zoom: 10.822714855509464
+          , pitch: 0.0
+          , bearing: 0.0
+          }
+        , command
+        }
 
 
 mapStyle :: String
