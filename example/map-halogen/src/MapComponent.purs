@@ -43,7 +43,7 @@ data MapQuery a
   | HandleMessages Messages a
 
 data MapMessages
-  = OnChangeViewport Viewport
+  = OnViewportChange Viewport
   | OnClick ClickInfo
 
 mapComponent :: forall eff m. MonadAff (dom :: DOM, avar :: AVAR | eff) m => H.Component HH.HTML MapQuery MapProps MapMessages m
@@ -154,8 +154,8 @@ mapClass = R.createClass spec
       pure
         $ R.createFactory MapGL.mapGL
         $ MapGL.mkProps viewport
-          { onChangeViewport: mkEffFn1 $ \newVp -> do
-              launchAff_ $ Bus.write (PublicMsg $ OnChangeViewport newVp) messages
+          { onViewportChange: mkEffFn1 $ \newVp -> do
+              launchAff_ $ Bus.write (PublicMsg $ OnViewportChange newVp) messages
               void $ R.transformState this _{viewport = newVp}
           , onClick: mkEffFn1 $ \info -> do
               launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages

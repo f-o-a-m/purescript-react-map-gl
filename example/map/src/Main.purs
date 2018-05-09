@@ -36,7 +36,7 @@ mapSpec = R.spec' (const initialViewport) render
     render this = R.readState this <#> \vp ->
       R.createFactory MapGL.mapGL $
         MapGL.mkProps vp
-          { onChangeViewport: mkEffFn1 $ \newVp -> do
+          { onViewportChange: mkEffFn1 $ \newVp -> do
               log $ "Changed Viewport: " <> show newVp
               void $ R.writeState this newVp
           , onClick: mkEffFn1 $ \info -> do

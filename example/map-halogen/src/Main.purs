@@ -66,7 +66,7 @@ ui =
     pure next
   eval (HandleMapUpdate msg next) = do
     case msg of
-      OnChangeViewport vp -> liftEff $ log $ show vp
+      OnViewportChange vp -> liftEff $ log $ show vp
       OnClick info -> liftEff $ log $ show info.lngLat
     pure next
 

@@ -2,7 +2,7 @@ module MapGL
   ( Viewport(..)
   , ViewportR
   , LngLat
-  , OnChangeViewport
+  , OnViewportChange
   , ClickInfo
   , OnClickMap
   , MapProps
@@ -70,7 +70,7 @@ instance showLngLat :: Show LngLat where
   show = genericShow
 
 -- | A handler to be run whenever the viewport changes
-type OnChangeViewport eff = EffFn1 eff Viewport Unit
+type OnViewportChange eff = EffFn1 eff Viewport Unit
 
 -- | The type exposed by the picking engine (abbreviated).
 -- | - `latLng`: The latitude and longitude of the point picked.
@@ -82,7 +82,7 @@ type ClickInfo =
 type OnClickMap eff = EffFn1 eff ClickInfo Unit
 
 type MapPropsR eff r =
-  ( onChangeViewport :: OnChangeViewport eff
+  ( onViewportChange :: OnViewportChange eff
   , onClick :: OnClickMap eff
   , mapStyle :: String
   , mapboxApiAccessToken :: String
