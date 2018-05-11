@@ -18,7 +18,9 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Newtype (class Newtype)
 import Data.Record.Builder (build, merge)
 import React as R
-import WebMercator.Viewport (LngLat, ViewportR)
+import WebMercator.Viewport (ViewportR)
+import WebMercator.LngLat (LngLat)
+
 
 -- TODO add animation props to Viewport
 

@@ -2,7 +2,9 @@ module MapGL.HTMLOverlay where
 
 import Control.Monad.Eff (Eff)
 import React as R
-import WebMercator.Viewport (Pixel, LngLat)
+import WebMercator.Pixel (Pixel)
+import WebMercator.LngLat (LngLat)
+
 
 type RedrawArgs =
   { width :: Number
