@@ -8,11 +8,4 @@ You can build this from the root directory
 > npm run example-map
 ```
 
-or in this directory
-
-```bash
-> npm i
-> npm run build
-```
-
-Open `dist/index.html` to view the map.
+And serve `./dist/` using a webserver.

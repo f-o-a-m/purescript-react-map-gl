@@ -2,22 +2,19 @@
   "private": true,
   "dependencies": {
     "react": "^16.0.0",
-    "react-map-gl": "^3.2.1",
-    "save": "^2.3.2"
+    "react-map-gl": "^3.2.1"
   },
   "devDependencies": {
     "bower": "^1.8.2",
     "pulp": "^12.0.1",
     "purescript": "^0.11.7",
-    "create-react-class": "^15.6.3",
-    "react": "^16.0.0",
     "react-dom": "^16.0.0",
-    "react-map-gl": "^3.2.1"
+    "react-map-gl": "^3.2.1",
+    "create-react-class": "^15.6.3"
   },
   "scripts": {
     "build": "pulp build",
     "example-map": "pulp browserify --include example/map/src --to example/map/dist/example.js",
-    "example-map-halogen": "pulp browserify --include example/map-halogen/src --to example/map-halogen/dist/example.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "example-map-halogen": "pulp browserify --include example/map-halogen/src --to example/map-halogen/dist/example.js"
   }
 }
