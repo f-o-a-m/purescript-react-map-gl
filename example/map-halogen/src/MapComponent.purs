@@ -18,7 +18,10 @@ import DOM (DOM)
 import DOM.HTML (window)
 import DOM.HTML.Types (htmlElementToElement)
 import DOM.HTML.Window as Window
+import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
+import Data.Newtype (un)
+import Data.Record.Builder (build, merge)
 import Data.Tuple (snd)
 import Halogen (liftEff)
 import Halogen as H
@@ -71,8 +74,8 @@ mapComponent =
         Nothing -> unsafeCrashWith "There must be an element with ref `map`"
         Just el' -> do
           win <- liftEff window
-          width <- liftEff $ Window.innerWidth win
-          height <- liftEff $ Window.innerHeight win
+          width <- liftEff $ toNumber <$> Window.innerWidth win
+          height <- liftEff $ toNumber <$> Window.innerHeight win
           messages <- liftAff Bus.make
           liftEff $ void $ RDOM.render (R.createFactory mapClass { messages: snd $ Bus.split messages, width, height}) (htmlElementToElement el')
           H.subscribe $ H.eventSource (\emit -> launchAff_ $ fix \loop -> do
@@ -113,8 +116,8 @@ data Messages
 
 type Props =
   { messages :: Bus.BusW Messages
-  , width :: Int
-  , height :: Int
+  , width :: Number
+  , height :: Number
   }
 
 type State =
@@ -153,7 +156,7 @@ mapClass = R.createClass spec
       { viewport } <- R.readState this
       pure
         $ R.createFactory MapGL.mapGL
-        $ MapGL.mkProps viewport
+        $ build (merge $ un MapGL.Viewport viewport)
           { onViewportChange: mkEffFn1 $ \newVp -> do
               launchAff_ $ Bus.write (PublicMsg $ OnViewportChange newVp) messages
               void $ R.transformState this _{viewport = newVp}

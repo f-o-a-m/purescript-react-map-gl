@@ -18,7 +18,9 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.VDom.Driver (runUI)
 import MapComponent (MapMessages(..), MapQuery(..), mapComponent)
-import MapGL (LngLat, Viewport(..), lat, lng, makeLngLat)
+import MapGL (Viewport(..))
+import WebMercator.LngLat (LngLat)
+import WebMercator.LngLat as LngLat
 
 type State = {}
 
@@ -52,7 +54,7 @@ ui =
       [ HH.slot MapSlot mapComponent unit $ Just <<< H.action <<< HandleMapUpdate
       , HH.button
           [ HP.class_ (HH.ClassName "goto")
-          , HE.onClick (HE.input_ $ GoTo $ makeLngLat 44.81647122397245 41.661632116606455) 
+          , HE.onClick (HE.input_ $ GoTo $ LngLat.make { lng: 44.81647122397245, lat: 41.661632116606455 })
           ]
           [ HH.text "GoTo Tbilisi" ]
       ]
@@ -61,7 +63,7 @@ ui =
   eval (GoTo lnglat next) = do
     mbVp <- H.query MapSlot $ H.request AskViewport
     for_ mbVp \vp -> do
-      let nextVp = over Viewport (_{ latitude = lat lnglat, longitude = lng lnglat, zoom = 12.0}) vp
+      let nextVp = over Viewport (_{ latitude = LngLat.lat lnglat, longitude = LngLat.lng lnglat, zoom = 12.0}) vp
       H.query MapSlot $ H.action $ SetViewport nextVp
     pure next
   eval (HandleMapUpdate msg next) = do
