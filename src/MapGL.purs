@@ -11,12 +11,11 @@ module MapGL
 
 import Prelude
 
-import Control.Monad.Eff (kind Effect)
-import Control.Monad.Eff.Uncurried (EffFn1)
+import Effect.Uncurried (EffectFn1)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Newtype (class Newtype)
-import Data.Record.Builder (build, merge)
+import Record.Builder (build, merge)
 import React as R
 import WebMercator.Viewport (ViewportR)
 import WebMercator.LngLat (LngLat)
@@ -36,7 +35,7 @@ instance showViewport :: Show Viewport where
   show = genericShow
 
 -- | A handler to be run whenever the viewport changes
-type OnViewportChange eff = EffFn1 eff Viewport Unit
+type OnViewportChange = EffectFn1 Viewport Unit
 
 -- | The type exposed by the picking engine (abbreviated).
 -- | - `latLng`: The latitude and longitude of the point picked.
@@ -45,19 +44,19 @@ type ClickInfo =
   }
 
 -- | A handler to run when the picking engine fires.
-type OnClickMap eff = EffFn1 eff ClickInfo Unit
+type OnClickMap = EffectFn1 ClickInfo Unit
 
-type MapPropsR eff r =
-  ( onViewportChange :: OnViewportChange eff
-  , onClick :: OnClickMap eff
+type MapPropsR r =
+  ( onViewportChange :: OnViewportChange
+  , onClick :: OnClickMap
   , mapStyle :: String
   , mapboxApiAccessToken :: String
   | r
   )
 
-type MapProps eff = Record (ViewportR (MapPropsR eff ()))
+type MapProps = Record (ViewportR (MapPropsR ()))
 
-mkProps :: forall eff. Viewport -> Record (MapPropsR eff ()) -> MapProps eff
+mkProps :: Viewport -> Record (MapPropsR ()) -> MapProps
 mkProps (Viewport vp) rest = build (merge rest) vp
 
-foreign import mapGL :: forall eff. R.ReactClass (MapProps eff)
+foreign import mapGL :: R.ReactClass MapProps

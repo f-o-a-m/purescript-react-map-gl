@@ -2,15 +2,12 @@ module Main where
 
 import Prelude
 
-import Control.Monad.Aff.Class (class MonadAff)
-import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.AVar (AVAR)
-import Control.Monad.Eff.Console (CONSOLE, log)
-import DOM (DOM)
+import Effect (Effect)
+import Effect.Aff.Class (class MonadAff)
+import Effect.Console (log)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (over)
-import Halogen (liftEff)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
@@ -33,8 +30,8 @@ derive instance eqMapSlot :: Eq MapSlot
 derive instance ordMapSlot :: Ord MapSlot
 
 ui 
-  :: forall m eff
-  . MonadAff (dom :: DOM, console :: CONSOLE, avar :: AVAR | eff) m
+  :: forall m
+  . MonadAff m
   => H.Component HH.HTML Query Unit Void m
 ui =
   H.parentComponent
@@ -68,11 +65,11 @@ ui =
     pure next
   eval (HandleMapUpdate msg next) = do
     case msg of
-      OnViewportChange vp -> liftEff $ log $ show vp
-      OnClick info -> liftEff $ log $ show info.lngLat
+      OnViewportChange vp -> H.liftEffect $ log $ show vp
+      OnClick info -> H.liftEffect $ log $ show info.lngLat
     pure next
 
-main :: Eff (HA.HalogenEffects (console :: CONSOLE)) Unit
+main :: Effect Unit
 main = HA.runHalogenAff do
   body <- HA.awaitBody
   runUI ui unit body

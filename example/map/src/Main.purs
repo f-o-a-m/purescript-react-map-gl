@@ -2,67 +2,64 @@ module Main where
 
 import Prelude
 
-import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Console (CONSOLE, log)
-import Control.Monad.Eff.Uncurried (mkEffFn1)
-import DOM (DOM)
-import DOM.HTML (window)
-import DOM.HTML.Types (htmlDocumentToDocument)
-import DOM.HTML.Window as Window
-import DOM.Node.NonElementParentNode (getElementById)
-import DOM.Node.Types (Element, ElementId(..), documentToNonElementParentNode)
 import Data.Int (toNumber)
 import Data.Maybe (fromJust)
 import Data.Newtype (un)
-import Data.Record.Builder (build, merge)
+import Effect (Effect)
+import Effect.Console (log)
+import Effect.Uncurried (mkEffectFn1)
 import MapGL as MapGL
 import Partial.Unsafe (unsafePartial)
 import React as R
 import ReactDOM (render)
+import Record.Builder (build, merge)
+import Web.DOM (Element)
+import Web.DOM.NonElementParentNode (getElementById)
+import Web.HTML (window)
+import Web.HTML.HTMLDocument as HTMLDocument
+import Web.HTML.Window as Window
 
-main :: forall eff. Eff (dom :: DOM | eff) Unit
-main = void  $ elm' >>= render (R.createFactory mapClass unit)
+main :: Effect Unit
+main = void  $ elm' >>= render (R.createLeafElement mapClass {})
   where
-    elm' :: Eff (dom :: DOM | eff) Element
+    elm' :: Effect Element
     elm' = do
       win <- window
       doc <- Window.document win
-      elm <- getElementById (ElementId "app") (documentToNonElementParentNode (htmlDocumentToDocument doc))
+      elm <- getElementById "app" (HTMLDocument.toNonElementParentNode doc)
       pure $ unsafePartial (fromJust elm)
 
-mapClass :: forall props . R.ReactClass props
-mapClass = R.createClass mapSpec
-
-mapSpec :: forall props eff . R.ReactSpec props MapGL.Viewport R.ReactElement (console :: CONSOLE, dom :: DOM | eff)
-mapSpec = R.spec' (const initialViewport) render
-  where
-    render this = R.readState this <#> \vp ->
-      R.createFactory MapGL.mapGL $
-        build (merge $ un MapGL.Viewport vp)
-          { onViewportChange: mkEffFn1 $ \newVp -> do
-              log $ "Changed Viewport: " <> show newVp
-              void $ R.writeState this newVp
-          , onClick: mkEffFn1 $ \info -> do
-              log $ "Clicked map: " <> show info.lngLat
-          , mapStyle: mapStyle
-          , mapboxApiAccessToken: mapboxApiAccessToken
-          }
-
-initialViewport :: forall eff . Eff (dom :: DOM | eff) MapGL.Viewport
-initialViewport = do
+mapClass :: R.ReactClass {}
+mapClass = R.component "Map" \this -> do
   win <- window
   w <- Window.innerWidth win
   h <- Window.innerHeight win
-  pure $
-    MapGL.Viewport { width: toNumber w
-                   , height: toNumber h
-                   , longitude: -74.00539284665783
-                   , latitude: 40.70544878575082
-                   , zoom: 10.822714855509464
-                   , pitch: 0.0
-                   , bearing: 0.0
-                   }
-
+  pure 
+    { render: render this
+    , state: 
+        { vp: MapGL.Viewport
+            { width: toNumber w
+            , height: toNumber h
+            , longitude: -74.00539284665783
+            , latitude: 40.70544878575082
+            , zoom: 10.822714855509464
+            , pitch: 0.0
+            , bearing: 0.0
+            }
+        }
+    }
+    where
+      render this = R.getState this <#> \{vp} ->
+        R.createLeafElement MapGL.mapGL $
+          build (merge $ un MapGL.Viewport vp)
+            { onViewportChange: mkEffectFn1 $ \newVp -> do
+                log $ "Changed Viewport: " <> show newVp
+                void $ R.writeState this {vp: newVp}
+            , onClick: mkEffectFn1 $ \info -> do
+                log $ "Clicked map: " <> show info.lngLat
+            , mapStyle: mapStyle
+            , mapboxApiAccessToken: mapboxApiAccessToken
+            }
 
 mapStyle :: String
 mapStyle = "mapbox://styles/mapbox/dark-v9"
