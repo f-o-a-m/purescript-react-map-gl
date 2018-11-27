@@ -12,7 +12,7 @@ import MapGL as MapGL
 import Partial.Unsafe (unsafePartial)
 import React as R
 import ReactDOM (render)
-import Record.Builder (build, merge)
+import Record (disjointUnion)
 import Web.DOM (Element)
 import Web.DOM.NonElementParentNode (getElementById)
 import Web.HTML (window)
@@ -50,8 +50,8 @@ mapClass = R.component "Map" \this -> do
     }
     where
       render this = R.getState this <#> \{vp} ->
-        R.createLeafElement MapGL.mapGL $
-          build (merge $ un MapGL.Viewport vp)
+        R.createLeafElement MapGL.mapGL
+          $ un MapGL.Viewport vp `disjointUnion`
             { onViewportChange: mkEffectFn1 $ \newVp -> do
                 log $ "Changed Viewport: " <> show newVp
                 void $ R.writeState this {vp: newVp}

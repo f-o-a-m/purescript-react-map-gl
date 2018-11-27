@@ -28,7 +28,7 @@ import MapGL as MapGL
 import Partial.Unsafe (unsafeCrashWith)
 import React as R
 import ReactDOM (render) as RDOM
-import Record.Builder (build, merge)
+import Record (disjointUnion)
 import Web.HTML (window)
 import Web.HTML.HTMLElement as HTMLElement
 import Web.HTML.Window as Window
@@ -169,7 +169,7 @@ mapClass = R.component "Map" \this -> do
       { viewport } <- R.getState this
       pure
         $ R.createLeafElement MapGL.mapGL
-        $ build (merge $ un MapGL.Viewport viewport)
+        $ un MapGL.Viewport viewport `disjointUnion`
           { onViewportChange: mkEffectFn1 $ \newVp -> do
               launchAff_ $ Bus.write (PublicMsg $ OnViewportChange newVp) messages
               void $ R.modifyState this _{viewport = newVp}
