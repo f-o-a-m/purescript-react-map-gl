@@ -167,17 +167,17 @@ mapClass = R.component "Map" \this -> do
     render this = do
       { messages } <- R.getProps this
       { viewport } <- R.getState this
-      pure
-        $ R.createLeafElement MapGL.mapGL
-        $ un MapGL.Viewport viewport `disjointUnion`
-          { onViewportChange: mkEffectFn1 $ \newVp -> do
-              launchAff_ $ Bus.write (PublicMsg $ OnViewportChange newVp) messages
-              void $ R.modifyState this _{viewport = newVp}
-          , onClick: mkEffectFn1 $ \info -> do
-              launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages
-          , mapStyle: mapStyle
-          , mapboxApiAccessToken: mapboxApiAccessToken
-          }
+      pure $ R.createElement MapGL.mapGL
+        (un MapGL.Viewport viewport `disjointUnion`
+        { onViewportChange: mkEffectFn1 $ \newVp -> do
+            launchAff_ $ Bus.write (PublicMsg $ OnViewportChange newVp) messages
+            void $ R.modifyState this _{viewport = newVp}
+        , onClick: mkEffectFn1 $ \info -> do
+            launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages
+        , mapStyle: mapStyle
+        , mapboxApiAccessToken: mapboxApiAccessToken
+        })
+        []
 
 
 mapStyle :: String

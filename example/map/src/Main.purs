@@ -49,17 +49,17 @@ mapClass = R.component "Map" \this -> do
         }
     }
     where
-      render this = R.getState this <#> \{vp} ->
-        R.createLeafElement MapGL.mapGL
-          $ un MapGL.Viewport vp `disjointUnion`
-            { onViewportChange: mkEffectFn1 $ \newVp -> do
-                log $ "Changed Viewport: " <> show newVp
-                void $ R.writeState this {vp: newVp}
-            , onClick: mkEffectFn1 $ \info -> do
-                log $ "Clicked map: " <> show info.lngLat
-            , mapStyle: mapStyle
-            , mapboxApiAccessToken: mapboxApiAccessToken
-            }
+      render this = R.getState this <#> \{vp} -> R.createElement MapGL.mapGL
+        (un MapGL.Viewport vp `disjointUnion`
+          { onViewportChange: mkEffectFn1 $ \newVp -> do
+              log $ "Changed Viewport: " <> show newVp
+              void $ R.writeState this {vp: newVp}
+          , onClick: mkEffectFn1 $ \info -> do
+              log $ "Clicked map: " <> show info.lngLat
+          , mapStyle: mapStyle
+          , mapboxApiAccessToken: mapboxApiAccessToken
+          })
+          []
 
 mapStyle :: String
 mapStyle = "mapbox://styles/mapbox/dark-v9"
