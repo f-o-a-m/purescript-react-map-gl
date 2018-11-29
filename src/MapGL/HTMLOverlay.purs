@@ -1,6 +1,6 @@
 module MapGL.HTMLOverlay where
 
-import Control.Monad.Eff.Uncurried (EffFn1)
+import Effect.Uncurried (EffectFn1)
 import React as R
 import WebMercator.LngLat (LngLat)
 import WebMercator.Pixel (Pixel)
@@ -14,10 +14,10 @@ type RedrawArgs =
   , unproject :: Pixel -> LngLat
   }
 
-type Redraw eff = EffFn1 eff RedrawArgs R.ReactElement
+type Redraw = EffectFn1 RedrawArgs R.ReactElement
 
-type Props eff =
-  { redraw :: Redraw eff
+type Props =
+  { redraw :: Redraw
   }
 
-foreign import overlay :: forall eff. R.ReactClass (Props eff)
+foreign import overlay :: R.ReactClass Props

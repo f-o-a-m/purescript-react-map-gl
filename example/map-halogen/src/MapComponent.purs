@@ -8,22 +8,17 @@ module MapComponent
 import Prelude
 
 import Control.Lazy (fix)
-import Control.Monad.Aff (error, launchAff_)
-import Control.Monad.Aff.AVar (AVar, takeVar, putVar, makeEmptyVar)
-import Control.Monad.Aff.Bus as Bus
-import Control.Monad.Aff.Class (class MonadAff, liftAff)
-import Control.Monad.Eff.AVar (AVAR)
-import Control.Monad.Eff.Uncurried (mkEffFn1)
-import DOM (DOM)
-import DOM.HTML (window)
-import DOM.HTML.Types (htmlElementToElement)
-import DOM.HTML.Window as Window
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (un)
-import Data.Record.Builder (build, merge)
 import Data.Tuple (snd)
-import Halogen (liftEff)
+import Effect.Aff (error, launchAff_)
+import Effect.Aff.AVar (AVar)
+import Effect.Aff.AVar as AVar
+import Effect.Aff.Bus as Bus
+import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Uncurried (mkEffectFn1)
+import Halogen (liftEffect)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
@@ -33,6 +28,10 @@ import MapGL as MapGL
 import Partial.Unsafe (unsafeCrashWith)
 import React as R
 import ReactDOM (render) as RDOM
+import Record (disjointUnion)
+import Web.HTML (window)
+import Web.HTML.HTMLElement as HTMLElement
+import Web.HTML.Window as Window
 
 
 type MapState = Maybe (Bus.BusW Commands)
@@ -49,7 +48,7 @@ data MapMessages
   = OnViewportChange Viewport
   | OnClick ClickInfo
 
-mapComponent :: forall eff m. MonadAff (dom :: DOM, avar :: AVAR | eff) m => H.Component HH.HTML MapQuery MapProps MapMessages m
+mapComponent :: forall m. MonadAff m => H.Component HH.HTML MapQuery MapProps MapMessages m
 mapComponent =
   H.lifecycleComponent
     { initialState: const initialState
@@ -73,13 +72,13 @@ mapComponent =
       H.getHTMLElementRef (H.RefLabel "map") >>= case _ of
         Nothing -> unsafeCrashWith "There must be an element with ref `map`"
         Just el' -> do
-          win <- liftEff window
-          width <- liftEff $ toNumber <$> Window.innerWidth win
-          height <- liftEff $ toNumber <$> Window.innerHeight win
+          win <- liftEffect window
+          width <- liftEffect $ toNumber <$> Window.innerWidth win
+          height <- liftEffect $ toNumber <$> Window.innerHeight win
           messages <- liftAff Bus.make
-          liftEff $ void $ RDOM.render (R.createFactory mapClass { messages: snd $ Bus.split messages, width, height}) (htmlElementToElement el')
+          liftEffect $ void $ RDOM.render (R.createLeafElement mapClass { messages: snd $ Bus.split messages, width, height}) (HTMLElement.toElement el')
           H.subscribe $ H.eventSource (\emit -> launchAff_ $ fix \loop -> do
-              Bus.read messages >>= emit >>> liftEff
+              Bus.read messages >>= emit >>> liftEffect
               loop
             )
             (Just <<< flip HandleMessages ES.Listening)
@@ -101,9 +100,9 @@ mapComponent =
       case mbBus of
         Nothing -> unsafeCrashWith "At this point bus must be in state from eval AskViewport"
         Just bus -> do
-          var <- liftAff makeEmptyVar
+          var <- liftAff AVar.empty
           liftAff $ Bus.write (AskViewport' var) bus
-          vp <- liftAff $ takeVar var
+          vp <- liftAff $ AVar.take var
           pure $ reply vp
 
 data Commands
@@ -126,52 +125,15 @@ type State =
   }
 
 mapClass :: R.ReactClass Props
-mapClass = R.createClass spec
-    { componentDidMount = componentDidMount
-    , componentWillUnmount = componentWillUnmount
-    }
-  where
-    componentWillUnmount :: forall eff. R.ComponentWillUnmount Props State (avar :: AVAR | eff)
-    componentWillUnmount this = R.readState this >>= \{ command } ->
-      launchAff_ $ do
-        props <- liftEff $ R.getProps this
-        Bus.kill (error "kill from componentWillUnmount") command
-
-    componentDidMount :: forall eff. R.ComponentDidMount Props State (avar :: AVAR, dom ∷ DOM |eff)
-    componentDidMount this = do
-      { command } <- R.readState this
-      launchAff_ $ fix \loop -> do
-        msg <- Bus.read command
-        case msg of
-          SetViewport' vp -> liftEff $ R.transformState this _{viewport = vp}
-          AskViewport' var -> liftEff (R.readState this) >>= \{viewport} -> putVar viewport var
-        loop
-
-    spec :: forall eff. R.ReactSpec Props State R.ReactElement (dom :: DOM, avar :: AVAR | eff)
-    spec = R.spec' initialState render
-    
-    render :: forall eff. R.Render Props State R.ReactElement eff
-    render this = do
-      { messages } <- R.getProps this
-      { viewport } <- R.readState this
-      pure
-        $ R.createFactory MapGL.mapGL
-        $ build (merge $ un MapGL.Viewport viewport)
-          { onViewportChange: mkEffFn1 $ \newVp -> do
-              launchAff_ $ Bus.write (PublicMsg $ OnViewportChange newVp) messages
-              void $ R.transformState this _{viewport = newVp}
-          , onClick: mkEffFn1 $ \info -> do
-              launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages
-          , mapStyle: mapStyle
-          , mapboxApiAccessToken: mapboxApiAccessToken
-          }
-
-    initialState :: forall eff. R.GetInitialState Props State (dom :: DOM, avar :: AVAR | eff)
-    initialState this = do
-      command <- Bus.make
-      { messages, width, height } <- R.getProps this
-      launchAff_ $ Bus.write (IsInitialized $ snd $ Bus.split command) messages
-      pure
+mapClass = R.component "Map" \this -> do
+  command <- Bus.make
+  { messages, width, height } <- R.getProps this
+  launchAff_ $ Bus.write (IsInitialized $ snd $ Bus.split command) messages
+  pure 
+    { componentDidMount: componentDidMount this
+    , componentWillUnmount: componentWillUnmount this
+    , render: render this
+    , state:
         { viewport: MapGL.Viewport
           { width
           , height
@@ -183,6 +145,39 @@ mapClass = R.createClass spec
           }
         , command
         }
+    }
+  where
+    componentWillUnmount :: R.ReactThis Props State -> R.ComponentWillUnmount
+    componentWillUnmount this = R.getState this >>= \{ command } ->
+      launchAff_ $ do
+        props <- liftEffect $ R.getProps this
+        Bus.kill (error "kill from componentWillUnmount") command
+
+    componentDidMount :: R.ReactThis Props State -> R.ComponentDidMount
+    componentDidMount this = do
+      { command } <- R.getState this
+      launchAff_ $ fix \loop -> do
+        msg <- Bus.read command
+        case msg of
+          SetViewport' vp -> liftEffect $ R.modifyState this _{viewport = vp}
+          AskViewport' var -> liftEffect (R.getState this) >>= \{viewport} -> AVar.put viewport var
+        loop
+
+    render :: R.ReactThis Props State -> R.Render
+    render this = do
+      { messages } <- R.getProps this
+      { viewport } <- R.getState this
+      pure $ R.createElement MapGL.mapGL
+        (un MapGL.Viewport viewport `disjointUnion`
+        { onViewportChange: mkEffectFn1 $ \newVp -> do
+            launchAff_ $ Bus.write (PublicMsg $ OnViewportChange newVp) messages
+            void $ R.modifyState this _{viewport = newVp}
+        , onClick: mkEffectFn1 $ \info -> do
+            launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages
+        , mapStyle: mapStyle
+        , mapboxApiAccessToken: mapboxApiAccessToken
+        })
+        []
 
 
 mapStyle :: String
