@@ -13,7 +13,7 @@
     "purescript-react": "^6.0.0",
     "purescript-generics-rep": "^6.0.0",
     "purescript-record": "^1.0.0",
-    "purescript-web-mercator": "f-o-a-m/purescript-web-mercator#compiler/0.12"
+    "purescript-web-mercator": "f-o-a-m/purescript-web-mercator#0.2.0"
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0",
