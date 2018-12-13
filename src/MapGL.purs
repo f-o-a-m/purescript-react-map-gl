@@ -5,7 +5,6 @@ module MapGL
   , OnClickMap
   , MapProps
   , MapPropsR
-  , mkProps
   , mapGL
   ) where
 
@@ -51,13 +50,9 @@ type MapPropsR r =
   , onClick :: OnClickMap
   , mapStyle :: String
   , mapboxApiAccessToken :: String
-  , children :: R.Children
   | r
   )
 
-type MapProps = Record (ViewportR (MapPropsR ()))
-
-mkProps :: Viewport -> Record (MapPropsR ()) -> MapProps
-mkProps (Viewport vp) rest = disjointUnion rest vp
+type MapProps = Record (ViewportR (MapPropsR (children :: R.Children)))
 
 foreign import mapGL :: R.ReactClass MapProps
