@@ -7,4 +7,6 @@
 /.psc*
 /.purs*
 /.psa*
+.psc-ide-port
+.vscode/
 package-lock.json

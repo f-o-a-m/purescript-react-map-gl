@@ -2,6 +2,7 @@ module MapGL
   ( Viewport(..)
   , OnViewportChange
   , ClickInfo
+  , OnLoadMap
   , OnClickMap
   , MapProps
   , MapPropsR
@@ -14,7 +15,7 @@ import Prelude
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Newtype (class Newtype)
-import Effect.Uncurried (EffectFn1)
+import Effect (Effect)
 import React as R
 import Record (disjointUnion)
 import WebMercator.LngLat (LngLat)
@@ -35,7 +36,7 @@ instance showViewport :: Show Viewport where
   show = genericShow
 
 -- | A handler to be run whenever the viewport changes
-type OnViewportChange = EffectFn1 Viewport Unit
+type OnViewportChange = R.SyntheticEventHandler Viewport
 
 -- | The type exposed by the picking engine (abbreviated).
 -- | - `latLng`: The latitude and longitude of the point picked.
@@ -43,11 +44,15 @@ type ClickInfo =
   { lngLat :: LngLat
   }
 
+-- | The onLoad callback for the map
+type OnLoadMap = Effect Unit
+
 -- | A handler to run when the picking engine fires.
-type OnClickMap = EffectFn1 ClickInfo Unit
+type OnClickMap = R.SyntheticEventHandler ClickInfo
 
 type MapPropsR r =
-  ( onViewportChange :: OnViewportChange
+  ( onLoad :: OnLoadMap
+  , onViewportChange :: OnViewportChange
   , onClick :: OnClickMap
   , mapStyle :: String
   , mapboxApiAccessToken :: String
