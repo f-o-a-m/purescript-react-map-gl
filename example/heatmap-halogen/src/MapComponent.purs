@@ -8,8 +8,9 @@ module MapComponent
 import Prelude
 
 import Control.Lazy (fix)
+import Data.Foldable (for_)
 import Data.Int (toNumber)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromJust)
 import Data.Newtype (un)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
@@ -25,17 +26,20 @@ import Effect.Console (log)
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Uncurried (mkEffectFn1)
+import GeoJson (Feature(..), FeatureCollection(..))
+import GeoJson (GeoJson(..))
 import Halogen (liftEffect)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.Query.EventSource as ES
-import MapGL (ClickInfo, Viewport)
+import MapGL (ClickInfo, InteractiveMap, Map, MapboxSourceId(..), Viewport(..), getMap, getMapboxSource, setMapboxSourceData)
 import MapGL as MapGL
 import Partial.Unsafe (unsafeCrashWith)
 import React as R
 import ReactDOM (render) as RDOM
 import Record (disjointUnion)
+import Unsafe.Coerce (unsafeCoerce)
 import Web.HTML (window)
 import Web.HTML.HTMLElement as HTMLElement
 import Web.HTML.Window as Window
@@ -56,7 +60,13 @@ data MapMessages
   | OnClick ClickInfo
   | OnLoad
 
-type MapRef = Ref (Maybe R.ReactRef) 
+type MapRef = Ref (Maybe InteractiveMap) 
+
+mapSourceId :: MapboxSourceId
+mapSourceId = MapboxSourceId "earthquake-source-id"
+
+type MapSourceProps = (mag::Number)
+
 
 mapComponent :: forall m. MonadAff m => H.Component HH.HTML MapQuery MapProps MapMessages m
 mapComponent =
@@ -87,7 +97,7 @@ mapComponent =
           width <- liftEffect $ toNumber <$> Window.innerWidth win
           height <- liftEffect $ toNumber <$> Window.innerHeight win
           messages <- liftAff Bus.make
-          liftEffect $ void $ RDOM.render (R.createLeafElement mapClass { messagesW: snd $ Bus.split messages, width, height, mapRef}) (HTMLElement.toElement el')
+          liftEffect $ void $ RDOM.render (R.createLeafElement mapClass { messages: snd $ Bus.split messages, width, height, mapRef}) (HTMLElement.toElement el')
           H.subscribe $ H.eventSource (\emit -> launchAff_ $ fix \loop -> do
               Bus.read messages >>= emit >>> liftEffect
               loop
@@ -125,7 +135,7 @@ data Messages
   | PublicMsg MapMessages
 
 type Props =
-  { messagesW :: Bus.BusW Messages
+  { messages :: Bus.BusW Messages
   , width :: Number
   , height :: Number
   , mapRef :: MapRef
@@ -133,20 +143,20 @@ type Props =
 
 type State =
   { command :: Bus.BusRW Commands
-  , viewport :: MapGL.Viewport
+  , viewport :: Viewport
   }
 
 mapClass :: R.ReactClass Props
 mapClass = R.component "Map" \this -> do
   command <- Bus.make
-  { messagesW, width, height, mapRef } <- R.getProps this
-  launchAff_ $ Bus.write (IsInitialized $ snd $ Bus.split command) messagesW
+  { messages, width, height, mapRef } <- R.getProps this
+  launchAff_ $ Bus.write (IsInitialized $ snd $ Bus.split command) messages
   pure 
     { componentDidMount: componentDidMount this
     , componentWillUnmount: componentWillUnmount this
     , render: render this
     , state:
-        { viewport: MapGL.Viewport
+        { viewport: Viewport
           { width
           , height
           , longitude: -100.0
@@ -162,7 +172,8 @@ mapClass = R.component "Map" \this -> do
     componentWillUnmount :: R.ReactThis Props State -> R.ComponentWillUnmount
     componentWillUnmount this = R.getState this >>= \{ command } ->
       launchAff_ $ do
-        props <- liftEffect $ R.getProps this
+        {mapRef} <- liftEffect $ R.getProps this
+        liftEffect $ Ref.write Nothing mapRef
         Bus.kill (error "kill from componentWillUnmount") command
 
     componentDidMount :: R.ReactThis Props State -> R.ComponentDidMount
@@ -177,26 +188,33 @@ mapClass = R.component "Map" \this -> do
 
     mapOnLoadHandler :: Effect Unit
     mapOnLoadHandler =
+      -- TODO(sectore) Load data from https://docs.mapbox.com/mapbox-gl-js/assets/earthquakes.geojson
       log "log onload "
 
     mapRefHandler :: MapRef -> (Nullable R.ReactRef)-> Effect Unit
-    mapRefHandler mapRef ref = do 
-      log "mapRefHandler"
-      _ <- Ref.write (Nullable.toMaybe ref) mapRef
-      Debug.traceM =<< Ref.read mapRef
+    mapRefHandler mapRef ref = do
+      _ <- Ref.write (Nullable.toMaybe $ unsafeCoerce ref ) mapRef
       pure unit
+
+    setMapData :: forall p. InteractiveMap -> (Array (Feature p)) -> Effect Unit
+    setMapData iMap features = do 
+      for_ (getMap iMap) \map -> do
+        source <- getMapboxSource map mapSourceId
+        -- TODO(sectore) Add real GeoJson data - mocking data is just for debugging
+        let geojson = GeoJsonFeatureCollection {features: [{properties: Just {mag: 2.3}}]}
+        setMapboxSourceData source geojson
 
     render :: R.ReactThis Props State -> R.Render
     render this = do
-      { messagesW, mapRef } <- R.getProps this
+      { messages, mapRef } <- R.getProps this
       { viewport } <- R.getState this
       pure $ R.createElement MapGL.mapGL
               (un MapGL.Viewport viewport `disjointUnion`
               { onViewportChange: mkEffectFn1 $ \newVp -> do
-                  launchAff_ $ Bus.write (PublicMsg $ OnViewportChange newVp) messagesW
+                  launchAff_ $ Bus.write (PublicMsg $ OnViewportChange newVp) messages
                   void $ R.modifyState this _{viewport = newVp}
               , onClick: mkEffectFn1 $ \info -> do
-                  launchAff_ $ Bus.write (PublicMsg $ OnClick info) messagesW
+                  launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages
               , onLoad: mapOnLoadHandler
               , mapStyle
               , mapboxApiAccessToken
