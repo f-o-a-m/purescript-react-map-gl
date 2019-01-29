@@ -20,6 +20,8 @@
     "purescript-react-dom": "^6.0.0",
     "purescript-halogen": "^4.0.0",
     "purescript-aff-bus": "^4.0.0",
-    "purescript-debug": "^4.0.0"
+    "purescript-debug": "^4.0.0",
+    "purescript-affjax": "^7.0.0",
+    "purescript-simple-json": "^4.4.0"
   }
 }

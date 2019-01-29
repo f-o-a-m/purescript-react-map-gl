@@ -8,6 +8,7 @@
 
 module GeoJson where
 
+
 import Data.Maybe (Maybe)
 
 -- GeoJson

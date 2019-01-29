@@ -7,38 +7,42 @@ module MapComponent
 
 import Prelude
 
+import Affjax as Affjax
+import Affjax.ResponseFormat as ResponseFormat
+import Affjax.StatusCode (StatusCode(..))
 import Control.Lazy (fix)
+import Data.Either (Either(..), either)
 import Data.Foldable (for_)
 import Data.Int (toNumber)
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (un)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Data.Tuple (snd)
-import Debug.Trace as Debug
 import Effect (Effect)
 import Effect.Aff (error, launchAff_)
 import Effect.Aff.AVar (AVar)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Bus as Bus
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect.Console (log)
+import Effect.Class.Console as C
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Uncurried (mkEffectFn1)
-import GeoJson (Feature(..), FeatureCollection(..))
-import GeoJson (GeoJson(..))
 import Halogen (liftEffect)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.Query.EventSource as ES
-import MapGL (ClickInfo, InteractiveMap, Map, MapboxSourceId(..), Viewport(..), getMap, getMapboxSource, setMapboxSourceData)
+import MapGL (ClickInfo, InteractiveMap, Map, MapboxLayerId(..), MapboxSourceId(..), Viewport(..), addMapboxLayer, addMapboxSource, getMap, setMapboxSourceData)
 import MapGL as MapGL
+import MapGL.Heatmap (HeatmapWeightProperty(..))
+import MapGL.Heatmap as Heatmap
 import Partial.Unsafe (unsafeCrashWith)
 import React as R
 import ReactDOM (render) as RDOM
 import Record (disjointUnion)
+import Simple.JSON as JSON
 import Unsafe.Coerce (unsafeCoerce)
 import Web.HTML (window)
 import Web.HTML.HTMLElement as HTMLElement
@@ -63,7 +67,10 @@ data MapMessages
 type MapRef = Ref (Maybe InteractiveMap) 
 
 mapSourceId :: MapboxSourceId
-mapSourceId = MapboxSourceId "earthquake-source-id"
+mapSourceId = MapboxSourceId "heatmap-source"
+
+mapLayerId :: MapboxLayerId
+mapLayerId = MapboxLayerId "heatmap-layer"
 
 type MapSourceProps = (mag::Number)
 
@@ -186,23 +193,44 @@ mapClass = R.component "Map" \this -> do
           AskViewport' var -> liftEffect (R.getState this) >>= \{viewport} -> AVar.put viewport var
         loop
 
-    mapOnLoadHandler :: Effect Unit
-    mapOnLoadHandler =
-      -- TODO(sectore) Load data from https://docs.mapbox.com/mapbox-gl-js/assets/earthquakes.geojson
-      log "log onload "
-
+    mapOnLoadHandler 
+      :: MapRef
+      -> Effect Unit
+    mapOnLoadHandler mapRef = do
+      C.log "mapOnLoadHandler "
+      iMap <- Ref.read mapRef
+      for_ (getMap =<< iMap) \map -> do
+        -- set initial (empty) data
+        -- addMapboxSource map mapSourceId {type: "geojson", data: {}}
+        -- initial heatmap layer
+        -- addMapboxLayer map $ Heatmap.mkHeatmapLayer mapLayerId mapSourceId (HeatmapWeightProperty "mag")
+        -- load data
+        launchAff_ $ do 
+          C.log "load data"
+          result <- getData 
+          case result of
+            Right d -> do 
+              C.log "add data"
+              -- set initial data
+              liftEffect $ addMapboxSource map mapSourceId {type: "geojson", data: d}
+              C.log "add layer"
+              -- initial heatmap layer
+              liftEffect$ addMapboxLayer map $ Heatmap.mkHeatmapLayer mapLayerId mapSourceId (HeatmapWeightProperty "mag")
+              -- liftEffect $ setMapData map d.features
+            Left err -> do
+              liftEffect $ C.error $ "error while loading earthquake data: "
+              pure unit
+      pure unit
+  
     mapRefHandler :: MapRef -> (Nullable R.ReactRef)-> Effect Unit
     mapRefHandler mapRef ref = do
       _ <- Ref.write (Nullable.toMaybe $ unsafeCoerce ref ) mapRef
       pure unit
 
-    setMapData :: forall p. InteractiveMap -> (Array (Feature p)) -> Effect Unit
-    setMapData iMap features = do 
-      for_ (getMap iMap) \map -> do
-        source <- getMapboxSource map mapSourceId
-        -- TODO(sectore) Add real GeoJson data - mocking data is just for debugging
-        let geojson = GeoJsonFeatureCollection {features: [{properties: Just {mag: 2.3}}]}
-        setMapboxSourceData source geojson
+    setMapData :: forall r. Map -> (Array (|r)) -> Effect Unit
+    setMapData map features = do 
+      -- traceM features
+      setMapboxSourceData map mapSourceId features
 
     render :: R.ReactThis Props State -> R.Render
     render this = do
@@ -215,7 +243,7 @@ mapClass = R.component "Map" \this -> do
                   void $ R.modifyState this _{viewport = newVp}
               , onClick: mkEffectFn1 $ \info -> do
                   launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages
-              , onLoad: mapOnLoadHandler
+              , onLoad: mapOnLoadHandler mapRef
               , mapStyle
               , mapboxApiAccessToken
               , ref: mkEffectFn1 $ mapRefHandler mapRef
@@ -227,3 +255,109 @@ mapStyle = "mapbox://styles/mapbox/dark-v9"
 
 mapboxApiAccessToken :: String
 mapboxApiAccessToken = "pk.eyJ1IjoiYmxpbmt5MzcxMyIsImEiOiJjamVvcXZtbGYwMXgzMzNwN2JlNGhuMHduIn0.ue2IR6wHG8b9eUoSfPhTuQ"
+
+data AjaxError 
+  = HTTPStatus String
+  | ResponseError String
+  | DecodingError String
+
+getData 
+  :: forall m 
+  . MonadAff m 
+  => m (Either AjaxError DataSource)
+getData = liftAff do
+  {body, status} <- Affjax.get ResponseFormat.string dataUrl
+  if (status /= StatusCode 200) 
+    then
+      pure $ Left $ HTTPStatus $ show status
+    else
+      case body of 
+        Left err ->
+          pure $ Left $ ResponseError$ Affjax.printResponseFormatError err
+        Right str -> 
+          pure $ either (Left <<< DecodingError <<< show) pure (JSON.readJSON str)
+
+
+dataUrl :: String 
+dataUrl = "https://docs.mapbox.com/mapbox-gl-js/assets/earthquakes.geojson"
+
+type DataSource = 
+  { features :: Array 
+      { type:: String
+      , properties :: { id:: String
+                      , mag::Number
+                      , time::Number
+                      , felt::(Nullable Number)
+                      , tsunami::Number 
+                      } 
+      , geometry :: { type::String
+                    , coordinates::Array Number 
+                    }
+      }
+  }
+
+-- mkHeatmapLayer layerId sourceId weightProperty = do
+--     let maxZoomLevel = 9
+--     { id: layerId
+--     , source: sourceId
+--     , maxzoom: maxZoomLevel
+--     , type: "heatmap"
+--     , paint: 
+--         { -- Increase the heatmap weight based on a property.
+--           -- This property has to be defined in every Feature of a FeatureCollection
+--           "heatmap-weight": 
+--             [ "interpolate"
+--             , ["linear"]
+--             , ["get", weightProperty]
+--             , 0, 0
+--             , 6, 1
+--             ]
+--             -- Increase the heatmap color weight weight by zoom level
+--             -- heatmap-intensity is a multiplier on top of heatmap-weight
+--             -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-intensity
+--         , "heatmap-intensity": 
+--             [ "interpolate"
+--             , ["linear"]
+--             , ["zoom"]
+--             , 0, 1
+--             , maxZoomLevel, 3
+--             ]
+--         -- Color ramp for heatmap.  Domain is 0 (low) to 1 (high).
+--         -- Begin color ramp at 0-stop with a 0-transparancy color
+--         -- to create a blur-like effect.
+--         -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-color
+--         , "heatmap-color": 
+--             [ "interpolate"
+--             , ["linear"]
+--             , ["heatmap-density"]
+--             , 0, "rgba(33,102,172,0)"
+--             , 0.2, "rgb(103,169,207)"
+--             , 0.4, "rgb(209,229,240)"
+--             , 0.6, "rgb(253,219,199)"
+--             , 0.8, "rgb(239,138,98)"
+--             , 0.9, "rgb(255,201,101)"
+--             ]
+--         , -- Adjust the heatmap radius by zoom level
+--           -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-radius
+--           "heatmap-radius": 
+--             [ "interpolate"
+--             , ["linear"]
+--             , ["zoom"]
+--             , --zoom is 0 -> radius will be 2px
+--               0, 2
+--             , -- zoom is 9 -> radius will be 20px
+--               maxZoomLevel, 20
+--             ]
+--         , -- Transition from heatmap to circle layer by zoom level
+--           -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-opacity
+--           "heatmap-opacity": 
+--           [ "interpolate"
+--           , ["linear"]
+--           , ["zoom"]
+--           , -- zoom is 7 (or less) -> opacity will be 1
+--             7, 1,
+--             -- zoom is 9 (or greater) -> opacity will be 0
+--             maxZoomLevel, 0
+--           ]
+--         }
+--     }

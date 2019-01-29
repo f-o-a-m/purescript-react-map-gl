@@ -1,11 +1,11 @@
 
 // Heatmap layer
 // https://docs.mapbox.com/mapbox-gl-js/style-spec/#layers-heatmap
-exports.mkHeatmapLayerImpl = function (id, source, weightProperty) {
+exports.mkHeatmapLayerImpl = function (id, sourceId, weightProperty) {
     const MAX_ZOOM_LEVEL = 9;
-    return {
+    var layer = {
         id: id,
-        source: source,
+        source: sourceId,
         maxzoom: MAX_ZOOM_LEVEL,
         type: 'heatmap',
         paint: {
@@ -67,4 +67,6 @@ exports.mkHeatmapLayerImpl = function (id, source, weightProperty) {
             ],
         }
     }
+    console.log("layer", layer);
+    return layer;
 };

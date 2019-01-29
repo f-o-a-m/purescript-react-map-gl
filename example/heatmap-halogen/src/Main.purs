@@ -46,7 +46,7 @@ ui =
   eval :: Query ~> H.ParentDSL State Query MapQuery MapSlot Void m
   eval (HandleMapUpdate msg next) = do
     case msg of
-      OnViewportChange vp -> H.liftEffect $ log $ show vp
+      OnViewportChange vp -> pure unit -- H.liftEffect $ log $ show vp
       OnClick info -> H.liftEffect $ log $ show info.lngLat
       OnLoad -> H.liftEffect $ log "onload from map"
     pure next

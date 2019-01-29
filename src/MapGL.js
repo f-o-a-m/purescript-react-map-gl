@@ -16,6 +16,8 @@ exports.getMapImpl = function (mapRef) {
 // Adds a source to Mapbox' map style.
 // https://docs.mapbox.com/mapbox-gl-js/api/#map#addsource
 exports.addMapboxSourceImpl = function (map, id, source) {
+    console.log("addMapboxSourceImpl id", id);
+    console.log("addMapboxSourceImpl source", source);
     map.addSource(id, source);
 };
 
@@ -32,6 +34,9 @@ exports.getMapboxSourceImpl = function (map, sourceId) {
 };
 // Sets the GeoJSON data and re-renders the map.
 // https://docs.mapbox.com/mapbox-gl-js/api/#geojsonsource#setdata
-exports.setMapboxSourceData = function(source, data) {
+exports.setMapboxSourceDataImpl = function(map, sourceId, data) {
+    var source = map.getSource(sourceId);
+    console.log("setMapboxSourceDataImpl data", data)
+    console.log("setMapboxSourceDataImpl source", source)
     source.setData(data);
 };

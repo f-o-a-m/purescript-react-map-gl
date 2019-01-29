@@ -92,7 +92,7 @@ foreign import data Map :: Type
 
 foreign import getMapImpl :: Fn1 InteractiveMap (Nullable Map)
 getMap :: InteractiveMap -> Maybe Map
-getMap ref = Nullable.toMaybe $ runFn1 getMapImpl ref
+getMap = Nullable.toMaybe <<< runFn1 getMapImpl
 
 -- A source of Mapbox' style
 type MapboxSource r = (|r)
@@ -115,5 +115,7 @@ foreign import getMapboxSourceImpl :: forall r. Fn2 Map MapboxSourceId (MapboxSo
 getMapboxSource :: forall r. Map -> MapboxSourceId -> MapboxSource r
 getMapboxSource = runFn2 getMapboxSourceImpl
 
--- TODO (sectore) Define GeoJson type
-foreign import setMapboxSourceData :: forall geojson r. MapboxSource r -> geojson -> Effect Unit
+-- TODO (sectore) Define generic type for `data`
+foreign import setMapboxSourceDataImpl :: forall d. EffectFn3 Map MapboxSourceId d Unit
+setMapboxSourceData :: forall d. Map -> MapboxSourceId -> d -> Effect Unit 
+setMapboxSourceData = runEffectFn3 setMapboxSourceDataImpl
