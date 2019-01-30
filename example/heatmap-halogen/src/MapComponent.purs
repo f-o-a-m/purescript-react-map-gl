@@ -34,7 +34,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.Query.EventSource as ES
-import MapGL (ClickInfo, InteractiveMap, Map, MapboxLayerId(..), MapboxSourceId(..), Viewport(..), addMapboxLayer, addMapboxSource, getMap, setMapboxSourceData)
+import MapGL (ClickInfo, InteractiveMap, MapboxLayerId(..), MapboxSourceId(..), Viewport(..), addMapboxLayer, addMapboxSource, getMap, setMapboxSourceData)
 import MapGL as MapGL
 import MapGL.Heatmap (HeatmapWeightProperty(..))
 import MapGL.Heatmap as Heatmap
@@ -197,40 +197,27 @@ mapClass = R.component "Map" \this -> do
       :: MapRef
       -> Effect Unit
     mapOnLoadHandler mapRef = do
-      C.log "mapOnLoadHandler "
       iMap <- Ref.read mapRef
       for_ (getMap =<< iMap) \map -> do
         -- set initial (empty) data
-        -- addMapboxSource map mapSourceId {type: "geojson", data: {}}
+        addMapboxSource map mapSourceId {type: "geojson", data: {type: "FeatureCollection", features: []}}
         -- initial heatmap layer
-        -- addMapboxLayer map $ Heatmap.mkHeatmapLayer mapLayerId mapSourceId (HeatmapWeightProperty "mag")
+        addMapboxLayer map $ Heatmap.mkHeatmapLayer mapLayerId mapSourceId (HeatmapWeightProperty "mag")
         -- load data
         launchAff_ $ do 
-          C.log "load data"
           result <- getData 
           case result of
-            Right d -> do 
-              C.log "add data"
-              -- set initial data
-              liftEffect $ addMapboxSource map mapSourceId {type: "geojson", data: d}
-              C.log "add layer"
-              -- initial heatmap layer
-              liftEffect$ addMapboxLayer map $ Heatmap.mkHeatmapLayer mapLayerId mapSourceId (HeatmapWeightProperty "mag")
-              -- liftEffect $ setMapData map d.features
+            Right mapData -> do 
+              -- update data of heatmap layer
+              liftEffect $ setMapboxSourceData map mapSourceId mapData
             Left err -> do
               liftEffect $ C.error $ "error while loading earthquake data: "
               pure unit
-      pure unit
   
     mapRefHandler :: MapRef -> (Nullable R.ReactRef)-> Effect Unit
     mapRefHandler mapRef ref = do
-      _ <- Ref.write (Nullable.toMaybe $ unsafeCoerce ref ) mapRef
+      _ <- Ref.write (Nullable.toMaybe $ unsafeCoerce ref) mapRef
       pure unit
-
-    setMapData :: forall r. Map -> (Array (|r)) -> Effect Unit
-    setMapData map features = do 
-      -- traceM features
-      setMapboxSourceData map mapSourceId features
 
     render :: R.ReactThis Props State -> R.Render
     render this = do
@@ -282,7 +269,8 @@ dataUrl :: String
 dataUrl = "https://docs.mapbox.com/mapbox-gl-js/assets/earthquakes.geojson"
 
 type DataSource = 
-  { features :: Array 
+  { type:: String
+  , features :: Array 
       { type:: String
       , properties :: { id:: String
                       , mag::Number

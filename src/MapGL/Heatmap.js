@@ -3,7 +3,7 @@
 // https://docs.mapbox.com/mapbox-gl-js/style-spec/#layers-heatmap
 exports.mkHeatmapLayerImpl = function (id, sourceId, weightProperty) {
     const MAX_ZOOM_LEVEL = 9;
-    var layer = {
+    return {
         id: id,
         source: sourceId,
         maxzoom: MAX_ZOOM_LEVEL,
@@ -66,7 +66,5 @@ exports.mkHeatmapLayerImpl = function (id, sourceId, weightProperty) {
                 MAX_ZOOM_LEVEL, 0
             ],
         }
-    }
-    console.log("layer", layer);
-    return layer;
+    };
 };

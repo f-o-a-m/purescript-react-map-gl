@@ -4,10 +4,6 @@ exports.mapGL = MapGL.default;
 
 
 exports.getMapImpl = function (mapRef) {
-    // console.log("getMapImpl getMap", mapRef.getMap());
-    // console.log("getMapImpl getMap().addLayer", mapRef.getMap().addLayer);
-    // console.log("getMapImpl getMap().addSource", mapRef.getMap().addSource);
-    // console.log("getMapImpl getMap().getSource", mapRef.getMap().getSource);
     return mapRef 
         ? mapRef.getMap()
         : null;
@@ -15,10 +11,8 @@ exports.getMapImpl = function (mapRef) {
 
 // Adds a source to Mapbox' map style.
 // https://docs.mapbox.com/mapbox-gl-js/api/#map#addsource
-exports.addMapboxSourceImpl = function (map, id, source) {
-    console.log("addMapboxSourceImpl id", id);
-    console.log("addMapboxSourceImpl source", source);
-    map.addSource(id, source);
+exports.addMapboxSourceImpl = function (map, sourceId, source) {
+    map.addSource(sourceId, source);
 };
 
 // Adds a layer to Mapbox' map style.
@@ -36,7 +30,7 @@ exports.getMapboxSourceImpl = function (map, sourceId) {
 // https://docs.mapbox.com/mapbox-gl-js/api/#geojsonsource#setdata
 exports.setMapboxSourceDataImpl = function(map, sourceId, data) {
     var source = map.getSource(sourceId);
-    console.log("setMapboxSourceDataImpl data", data)
-    console.log("setMapboxSourceDataImpl source", source)
+    console.log("data", data);
+    
     source.setData(data);
 };

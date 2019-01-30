@@ -115,7 +115,6 @@ foreign import getMapboxSourceImpl :: forall r. Fn2 Map MapboxSourceId (MapboxSo
 getMapboxSource :: forall r. Map -> MapboxSourceId -> MapboxSource r
 getMapboxSource = runFn2 getMapboxSourceImpl
 
--- TODO (sectore) Define generic type for `data`
 foreign import setMapboxSourceDataImpl :: forall d. EffectFn3 Map MapboxSourceId d Unit
-setMapboxSourceData :: forall d. Map -> MapboxSourceId -> d -> Effect Unit 
+setMapboxSourceData :: forall r. Map -> MapboxSourceId -> MapboxSource r -> Effect Unit 
 setMapboxSourceData = runEffectFn3 setMapboxSourceDataImpl
