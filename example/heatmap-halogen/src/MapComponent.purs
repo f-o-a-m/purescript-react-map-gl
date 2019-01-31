@@ -1,5 +1,6 @@
 module MapComponent
-  ( MapQuery(SetViewport, AskViewport)
+  ( MapQuery(..)
+  , Messages(..)
   , MapProps
   , MapMessages(..)
   , mapComponent
@@ -20,9 +21,7 @@ import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Data.Tuple (snd)
 import Effect (Effect)
-import Effect.Aff (error, launchAff_)
-import Effect.Aff.AVar (AVar)
-import Effect.Aff.AVar as AVar
+import Effect.Aff (launchAff_)
 import Effect.Aff.Bus as Bus
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class.Console as C
@@ -34,10 +33,9 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.Query.EventSource as ES
-import MapGL (ClickInfo, InteractiveMap, MapboxLayerId(..), MapboxSourceId(..), Viewport(..), addMapboxLayer, addMapboxSource, getMap, setMapboxSourceData)
+import MapGL (ClickInfo, InteractiveMap, Viewport(..), getMap)
 import MapGL as MapGL
-import MapGL.Heatmap (HeatmapWeightProperty(..))
-import MapGL.Heatmap as Heatmap
+import Mapbox as Mapbox
 import Partial.Unsafe (unsafeCrashWith)
 import React as R
 import ReactDOM (render) as RDOM
@@ -49,31 +47,16 @@ import Web.HTML.HTMLElement as HTMLElement
 import Web.HTML.Window as Window
 
 
-type MapState = Maybe (Bus.BusW Commands)
+type MapState = {}
 
 type MapProps = Unit
 
 data MapQuery a
   = Initialize a
-  | SetViewport Viewport a
-  | AskViewport (Viewport -> a)
   | HandleMessages Messages a
 
 data MapMessages
-  = OnViewportChange Viewport
-  | OnClick ClickInfo
-  | OnLoad
-
-type MapRef = Ref (Maybe InteractiveMap) 
-
-mapSourceId :: MapboxSourceId
-mapSourceId = MapboxSourceId "heatmap-source"
-
-mapLayerId :: MapboxLayerId
-mapLayerId = MapboxLayerId "heatmap-layer"
-
-type MapSourceProps = (mag::Number)
-
+  = OnClick ClickInfo
 
 mapComponent :: forall m. MonadAff m => H.Component HH.HTML MapQuery MapProps MapMessages m
 mapComponent =
@@ -88,7 +71,7 @@ mapComponent =
   where
 
   initialState :: MapState
-  initialState = Nothing
+  initialState = {}
 
   render :: MapState -> H.ComponentHTML MapQuery
   render = const $ HH.div [ HP.ref (H.RefLabel "map") ] []
@@ -113,33 +96,13 @@ mapComponent =
       pure next
     HandleMessages msg next -> do
       case msg of
-        IsInitialized bus -> H.put $ Just bus
         PublicMsg msg' -> H.raise msg'
       pure next
-    SetViewport vp next -> do
-      mbBus <- H.get
-      case mbBus of
-        Nothing -> unsafeCrashWith "At this point bus must be in state from eval SetViewport"
-        Just bus -> do
-          liftAff $ Bus.write (SetViewport' vp) bus
-      pure next
-    AskViewport reply -> do
-      mbBus <- H.get
-      case mbBus of
-        Nothing -> unsafeCrashWith "At this point bus must be in state from eval AskViewport"
-        Just bus -> do
-          var <- liftAff AVar.empty
-          liftAff $ Bus.write (AskViewport' var) bus
-          vp <- liftAff $ AVar.take var
-          pure $ reply vp
 
-data Commands
-  = SetViewport' Viewport
-  | AskViewport' (AVar Viewport)
+type MapRef = Ref (Maybe InteractiveMap)
 
 data Messages
-  = IsInitialized (Bus.BusW Commands)
-  | PublicMsg MapMessages
+  = PublicMsg MapMessages
 
 type Props =
   { messages :: Bus.BusW Messages
@@ -149,19 +112,14 @@ type Props =
   }
 
 type State =
-  { command :: Bus.BusRW Commands
-  , viewport :: Viewport
+  { viewport :: Viewport
   }
 
 mapClass :: R.ReactClass Props
 mapClass = R.component "Map" \this -> do
-  command <- Bus.make
-  { messages, width, height, mapRef } <- R.getProps this
-  launchAff_ $ Bus.write (IsInitialized $ snd $ Bus.split command) messages
+  { width, height, mapRef } <- R.getProps this
   pure 
-    { componentDidMount: componentDidMount this
-    , componentWillUnmount: componentWillUnmount this
-    , render: render this
+    { render: render this
     , state:
         { viewport: Viewport
           { width
@@ -172,26 +130,9 @@ mapClass = R.component "Map" \this -> do
           , pitch: 0.0
           , bearing: 0.0
           }
-        , command
         }
     }
   where
-    componentWillUnmount :: R.ReactThis Props State -> R.ComponentWillUnmount
-    componentWillUnmount this = R.getState this >>= \{ command } ->
-      launchAff_ $ do
-        {mapRef} <- liftEffect $ R.getProps this
-        liftEffect $ Ref.write Nothing mapRef
-        Bus.kill (error "kill from componentWillUnmount") command
-
-    componentDidMount :: R.ReactThis Props State -> R.ComponentDidMount
-    componentDidMount this = do
-      { command } <- R.getState this
-      launchAff_ $ fix \loop -> do
-        msg <- Bus.read command
-        case msg of
-          SetViewport' vp -> liftEffect $ R.modifyState this _{viewport = vp}
-          AskViewport' var -> liftEffect (R.getState this) >>= \{viewport} -> AVar.put viewport var
-        loop
 
     mapOnLoadHandler 
       :: MapRef
@@ -200,16 +141,16 @@ mapClass = R.component "Map" \this -> do
       iMap <- Ref.read mapRef
       for_ (getMap =<< iMap) \map -> do
         -- set initial (empty) data
-        addMapboxSource map mapSourceId {type: "geojson", data: {type: "FeatureCollection", features: []}}
+        Mapbox.addSource map mapSourceId {type: "geojson", data: {type: "FeatureCollection", features: []}}
         -- initial heatmap layer
-        addMapboxLayer map $ Heatmap.mkHeatmapLayer mapLayerId mapSourceId (HeatmapWeightProperty "mag")
+        Mapbox.addLayer map heatmapLayer
         -- load data
         launchAff_ $ do 
-          result <- getData 
+          result <- getMapData 
           case result of
             Right mapData -> do 
               -- update data of heatmap layer
-              liftEffect $ setMapboxSourceData map mapSourceId mapData
+              liftEffect $ Mapbox.setData map mapSourceId mapData
             Left err -> do
               liftEffect $ C.error $ "error while loading earthquake data: "
               pure unit
@@ -225,9 +166,7 @@ mapClass = R.component "Map" \this -> do
       { viewport } <- R.getState this
       pure $ R.createElement MapGL.mapGL
               (un MapGL.Viewport viewport `disjointUnion`
-              { onViewportChange: mkEffectFn1 $ \newVp -> do
-                  launchAff_ $ Bus.write (PublicMsg $ OnViewportChange newVp) messages
-                  void $ R.modifyState this _{viewport = newVp}
+              { onViewportChange: mkEffectFn1 $ \_ -> pure unit
               , onClick: mkEffectFn1 $ \info -> do
                   launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages
               , onLoad: mapOnLoadHandler mapRef
@@ -248,11 +187,11 @@ data AjaxError
   | ResponseError String
   | DecodingError String
 
-getData 
+getMapData 
   :: forall m 
   . MonadAff m 
   => m (Either AjaxError DataSource)
-getData = liftAff do
+getMapData = liftAff do
   {body, status} <- Affjax.get ResponseFormat.string dataUrl
   if (status /= StatusCode 200) 
     then
@@ -268,84 +207,131 @@ getData = liftAff do
 dataUrl :: String 
 dataUrl = "https://docs.mapbox.com/mapbox-gl-js/assets/earthquakes.geojson"
 
-type DataSource = 
-  { type:: String
+type DataSource = Mapbox.Source 
+  { type :: String
   , features :: Array 
-      { type:: String
-      , properties :: { id:: String
-                      , mag::Number
-                      , time::Number
-                      , felt::(Nullable Number)
-                      , tsunami::Number 
+      { type :: String
+      , properties :: { id :: String
+                      , mag :: Number
+                      , time :: Number
+                      , felt :: Nullable Number
+                      , tsunami :: Number 
                       } 
-      , geometry :: { type::String
-                    , coordinates::Array Number 
+      , geometry :: { type :: String
+                    , coordinates :: Array Number 
                     }
       }
   }
 
--- mkHeatmapLayer layerId sourceId weightProperty = do
---     let maxZoomLevel = 9
---     { id: layerId
---     , source: sourceId
---     , maxzoom: maxZoomLevel
---     , type: "heatmap"
---     , paint: 
---         { -- Increase the heatmap weight based on a property.
---           -- This property has to be defined in every Feature of a FeatureCollection
---           "heatmap-weight": 
---             [ "interpolate"
---             , ["linear"]
---             , ["get", weightProperty]
---             , 0, 0
---             , 6, 1
---             ]
---             -- Increase the heatmap color weight weight by zoom level
---             -- heatmap-intensity is a multiplier on top of heatmap-weight
---             -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-intensity
---         , "heatmap-intensity": 
---             [ "interpolate"
---             , ["linear"]
---             , ["zoom"]
---             , 0, 1
---             , maxZoomLevel, 3
---             ]
---         -- Color ramp for heatmap.  Domain is 0 (low) to 1 (high).
---         -- Begin color ramp at 0-stop with a 0-transparancy color
---         -- to create a blur-like effect.
---         -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-color
---         , "heatmap-color": 
---             [ "interpolate"
---             , ["linear"]
---             , ["heatmap-density"]
---             , 0, "rgba(33,102,172,0)"
---             , 0.2, "rgb(103,169,207)"
---             , 0.4, "rgb(209,229,240)"
---             , 0.6, "rgb(253,219,199)"
---             , 0.8, "rgb(239,138,98)"
---             , 0.9, "rgb(255,201,101)"
---             ]
---         , -- Adjust the heatmap radius by zoom level
---           -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-radius
---           "heatmap-radius": 
---             [ "interpolate"
---             , ["linear"]
---             , ["zoom"]
---             , --zoom is 0 -> radius will be 2px
---               0, 2
---             , -- zoom is 9 -> radius will be 20px
---               maxZoomLevel, 20
---             ]
---         , -- Transition from heatmap to circle layer by zoom level
---           -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-opacity
---           "heatmap-opacity": 
---           [ "interpolate"
---           , ["linear"]
---           , ["zoom"]
---           , -- zoom is 7 (or less) -> opacity will be 1
---             7, 1,
---             -- zoom is 9 (or greater) -> opacity will be 0
---             maxZoomLevel, 0
---           ]
---         }
---     }
+mapSourceId :: Mapbox.SourceId
+mapSourceId = Mapbox.SourceId "heatmap-source"
+
+mapLayerId :: Mapbox.LayerId
+mapLayerId = Mapbox.LayerId "heatmap-layer"
+
+maxZoom :: Number 
+maxZoom = 9.0
+
+-- Increase the heatmap weight based on a property.
+-- This property has to be defined in a `feature` of a `FeatureCollection`
+heatmapWeight :: Mapbox.PaintProperty
+heatmapWeight = Mapbox.mkPaintProperty "heatmap-weight"
+  [ -- interpolate expression
+    -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-interpolate
+    Mapbox.SEString "interpolate"
+  , Mapbox.SEArray ["linear"]
+  -- "get" expression
+  -- Retrieves a property value from the current feature's properties
+  -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-get
+  , Mapbox.SEArray ["get", "mag"]
+  , Mapbox.SENumber 0.0
+  , Mapbox.SENumber 0.0
+  , Mapbox.SENumber 6.0
+  , Mapbox.SENumber 1.0
+  ]
+
+-- Increase the heatmap color weight weight by zoom level
+-- heatmap-intensity is a multiplier on top of heatmap-weight
+-- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-intensity
+heatmapIntensity :: Mapbox.PaintProperty
+heatmapIntensity = Mapbox.mkPaintProperty "heatmap-intensity"
+  [ Mapbox.SEString "interpolate"
+  , Mapbox.SEArray ["linear"]
+  , Mapbox.SEArray ["zoom"]
+  , Mapbox.SENumber 0.0
+  , Mapbox.SENumber 1.0
+  , Mapbox.SENumber maxZoom
+  , Mapbox.SENumber 3.0
+  ]
+
+-- Color ramp for heatmap.  Domain is 0 (low) to 1 (high).
+-- Begin color ramp at 0-stop with a 0-transparancy color
+-- to create a blur-like effect.
+-- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-color
+heatmapColor :: Mapbox.PaintProperty
+heatmapColor = Mapbox.mkPaintProperty "heatmap-color"
+  [ Mapbox.SEString "interpolate"
+  , Mapbox.SEArray ["linear"]
+  , Mapbox.SEArray ["heatmap-density"]
+  , Mapbox.SENumber 0.0
+  , Mapbox.SEString "rgba(33,102,172,0)"
+  , Mapbox.SENumber 0.2
+  , Mapbox.SEString "rgb(103,169,207)"
+  , Mapbox.SENumber 0.4
+  , Mapbox.SEString "rgb(209,229,240)"
+  , Mapbox.SENumber 0.6
+  , Mapbox.SEString "rgb(253,219,199)"
+  , Mapbox.SENumber 0.8
+  , Mapbox.SEString "rgb(239,138,98)"
+  , Mapbox.SENumber 0.9
+  , Mapbox.SEString "rgb(255,201,101)"
+  ]
+
+-- Adjust the heatmap radius by zoom level
+-- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-radius
+heatmapRadius :: Mapbox.PaintProperty
+heatmapRadius = Mapbox.mkPaintProperty "heatmap-radius"
+  [ Mapbox.SEString "interpolate"
+  , Mapbox.SEArray ["linear"]
+  , Mapbox.SEArray ["zoom"]
+  -- zoom is 0 -> radius will be 2px
+  , Mapbox.SENumber 0.0
+  , Mapbox.SENumber 2.0
+  -- zoom is 9 -> radius will be 20px
+  , Mapbox.SENumber maxZoom
+  , Mapbox.SENumber 20.0
+  ]
+
+-- Transition from heatmap to circle layer by zoom level
+-- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-opacity
+heatmapOpacity :: Mapbox.PaintProperty
+heatmapOpacity = Mapbox.mkPaintProperty "heatmap-opacity"
+  [ Mapbox.SEString "interpolate"
+  , Mapbox.SEArray ["linear"]
+  , Mapbox.SEArray ["zoom"]
+  -- zoom is 7 (or less) -> opacity will be 1
+  , Mapbox.SENumber 7.0
+  , Mapbox.SENumber 1.0
+  -- zoom is 9 (or greater) -> opacity will be 0
+  , Mapbox.SENumber maxZoom
+  , Mapbox.SENumber 0.0
+  ]
+
+paint :: Mapbox.Paint
+paint = Mapbox.Paint
+  [ heatmapWeight
+  , heatmapIntensity
+  , heatmapColor
+  , heatmapRadius
+  , heatmapOpacity
+  ]
+
+heatmapLayer :: Mapbox.Layer
+heatmapLayer = Mapbox.Layer
+  { id: mapLayerId
+  , source: mapSourceId
+  , type: Mapbox.Heatmap
+  , minzoom: 0.0
+  , maxzoom: maxZoom 
+  , paint
+  }

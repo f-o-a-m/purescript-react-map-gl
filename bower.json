@@ -13,7 +13,9 @@
     "purescript-react": "^6.1.0",
     "purescript-generics-rep": "^6.0.0",
     "purescript-record": "^1.0.0",
-    "purescript-web-mercator": "f-o-a-m/purescript-web-mercator#0.2.0"
+    "purescript-simple-json": "^4.4.0",
+    "purescript-web-mercator": "f-o-a-m/purescript-web-mercator#0.2.0",
+    "purescript-foreign-object": "^1.1.0"
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0",
@@ -21,7 +23,6 @@
     "purescript-halogen": "^4.0.0",
     "purescript-aff-bus": "^4.0.0",
     "purescript-debug": "^4.0.0",
-    "purescript-affjax": "^7.0.0",
-    "purescript-simple-json": "^4.4.0"
+    "purescript-affjax": "^7.0.0"
   }
 }

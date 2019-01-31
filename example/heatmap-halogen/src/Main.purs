@@ -27,29 +27,23 @@ ui
   => H.Component HH.HTML Query Unit Void m
 ui =
   H.parentComponent
-    { initialState: const initialState
+    { initialState: const {}
     , render
     , eval
     , receiver: const Nothing
     }
   where
+    render :: State -> H.ParentHTML Query MapQuery MapSlot m
+    render _ =
+      HH.div_
+        [ HH.slot MapSlot mapComponent unit $ Just <<< H.action <<< HandleMapUpdate
+        ]
 
-  initialState :: State
-  initialState = {}
-
-  render :: State -> H.ParentHTML Query MapQuery MapSlot m
-  render _ =
-    HH.div_
-      [ HH.slot MapSlot mapComponent unit $ Just <<< H.action <<< HandleMapUpdate
-      ]
-
-  eval :: Query ~> H.ParentDSL State Query MapQuery MapSlot Void m
-  eval (HandleMapUpdate msg next) = do
-    case msg of
-      OnViewportChange vp -> pure unit -- H.liftEffect $ log $ show vp
-      OnClick info -> H.liftEffect $ log $ show info.lngLat
-      OnLoad -> H.liftEffect $ log "onload from map"
-    pure next
+    eval :: Query ~> H.ParentDSL State Query MapQuery MapSlot Void m
+    eval (HandleMapUpdate msg next) = do
+      case msg of
+        OnClick info -> H.liftEffect $ log $ show info.lngLat
+      pure next
 
 main :: Effect Unit
 main = HA.runHalogenAff do

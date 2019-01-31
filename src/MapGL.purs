@@ -1,29 +1,20 @@
 module MapGL
   ( Viewport(..)
   , InteractiveMap
-  , Map
   , OnViewportChange
   , ClickInfo
   , OnLoadMap
   , OnClickMap
   , MapProps
   , MapPropsR
-  , MapboxSource(..)
-  , MapboxSourceId(..)
-  , MapboxLayer(..)
-  , MapboxLayerId(..)
   , mkProps
   , mapGL
   , getMap
-  , getMapboxSource
-  , addMapboxSource
-  , addMapboxLayer
-  , setMapboxSourceData
   ) where
 
 import Prelude
 
-import Data.Function.Uncurried (Fn1, Fn2, runFn1, runFn2)
+import Data.Function.Uncurried (Fn1, runFn1)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe)
@@ -31,7 +22,8 @@ import Data.Newtype (class Newtype)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Effect (Effect)
-import Effect.Uncurried (EffectFn1, EffectFn2, EffectFn3, runEffectFn2, runEffectFn3)
+import Effect.Uncurried (EffectFn1)
+import Mapbox (Map)
 import React as R
 import Record (disjointUnion)
 import WebMercator.LngLat (LngLat)
@@ -86,35 +78,7 @@ foreign import mapGL :: R.ReactClass MapProps
 -- Default map component by `ReactMapGL` to render `MapboxGL`
 -- https://github.com/uber/react-map-gl/blob/master/docs/components/interactive-map.md
 foreign import data InteractiveMap :: Type
--- `Map` object to have full access to underlaying `MapboxGL`s API
--- https://docs.mapbox.com/mapbox-gl-js/api/#map#addsource
-foreign import data Map :: Type
 
 foreign import getMapImpl :: Fn1 InteractiveMap (Nullable Map)
 getMap :: InteractiveMap -> Maybe Map
 getMap = Nullable.toMaybe <<< runFn1 getMapImpl
-
--- A source of Mapbox' style
-type MapboxSource r = (|r)
--- Id of a source in Mapbox' style
-newtype MapboxSourceId = MapboxSourceId String
--- A Mapbox' style layer
-type MapboxLayer r = (|r)
--- Id of a Mapbox' layer
-newtype MapboxLayerId = MapboxLayerId String
-
-foreign import addMapboxSourceImpl :: forall r. EffectFn3 Map MapboxSourceId (MapboxSource r) Unit
-addMapboxSource :: forall r. Map -> MapboxSourceId -> MapboxSource r -> Effect Unit
-addMapboxSource = runEffectFn3 addMapboxSourceImpl
-
-foreign import addMapboxLayerImpl :: forall r. EffectFn2 Map (MapboxLayer r) Unit
-addMapboxLayer :: forall r. Map -> MapboxLayer r -> Effect Unit
-addMapboxLayer = runEffectFn2 addMapboxLayerImpl
-
-foreign import getMapboxSourceImpl :: forall r. Fn2 Map MapboxSourceId (MapboxSource r)
-getMapboxSource :: forall r. Map -> MapboxSourceId -> MapboxSource r
-getMapboxSource = runFn2 getMapboxSourceImpl
-
-foreign import setMapboxSourceDataImpl :: forall d. EffectFn3 Map MapboxSourceId d Unit
-setMapboxSourceData :: forall r. Map -> MapboxSourceId -> MapboxSource r -> Effect Unit 
-setMapboxSourceData = runEffectFn3 setMapboxSourceDataImpl
