@@ -7,7 +7,8 @@ exports.addLayerImpl = function (map, layer, sourceId) {
 };
 
 exports.getSourceImpl = function (map, sourceId) {
-    return map.getSource(sourceId);
+    const source = map.getSource(sourceId);
+    return source !== undefined ? source : null;
 };
 
 exports.setDataImpl = function(map, sourceId, data) {

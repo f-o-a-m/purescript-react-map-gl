@@ -28,12 +28,13 @@ import Effect.Class.Console as C
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Uncurried (mkEffectFn1)
+import GeoJson (Feature, FeatureCollection, mkFeatureCollection)
 import Halogen (liftEffect)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.Query.EventSource as ES
-import MapGL (ClickInfo, InteractiveMap, Viewport(..), getMap)
+import MapGL (ClickInfo, InteractiveMap, Viewport(..))
 import MapGL as MapGL
 import Mapbox as Mapbox
 import Partial.Unsafe (unsafeCrashWith)
@@ -117,7 +118,7 @@ type State =
 
 mapClass :: R.ReactClass Props
 mapClass = R.component "Map" \this -> do
-  { width, height, mapRef } <- R.getProps this
+  { width, height } <- R.getProps this
   pure 
     { render: render this
     , state:
@@ -139,9 +140,10 @@ mapClass = R.component "Map" \this -> do
       -> Effect Unit
     mapOnLoadHandler mapRef = do
       iMap <- Ref.read mapRef
-      for_ (getMap =<< iMap) \map -> do
+      for_ (MapGL.getMap =<< iMap) \map -> do
         -- set initial (empty) data
-        Mapbox.addSource map mapSourceId {type: "geojson", data: {type: "FeatureCollection", features: []}}
+        let source = Mapbox.mkGeoJsonSource $ mkFeatureCollection []
+        Mapbox.addSource map mapSourceId source
         -- initial heatmap layer
         Mapbox.addLayer map heatmapLayer
         -- load data
@@ -190,7 +192,7 @@ data AjaxError
 getMapData 
   :: forall m 
   . MonadAff m 
-  => m (Either AjaxError DataSource)
+  => m (Either AjaxError HeatmapData)
 getMapData = liftAff do
   {body, status} <- Affjax.get ResponseFormat.string dataUrl
   if (status /= StatusCode 200) 
@@ -203,24 +205,19 @@ getMapData = liftAff do
         Right str -> 
           pure $ either (Left <<< DecodingError <<< show) pure (JSON.readJSON str)
 
-
 dataUrl :: String 
 dataUrl = "https://docs.mapbox.com/mapbox-gl-js/assets/earthquakes.geojson"
 
-type DataSource = Mapbox.Source 
-  { type :: String
-  , features :: Array 
-      { type :: String
-      , properties :: { id :: String
-                      , mag :: Number
-                      , time :: Number
-                      , felt :: Nullable Number
-                      , tsunami :: Number 
-                      } 
-      , geometry :: { type :: String
-                    , coordinates :: Array Number 
-                    }
-      }
+type HeatmapData = FeatureCollection HeatmapDataFeature
+
+type HeatmapDataFeature = Feature HeatmapDataProps
+
+type HeatmapDataProps =
+  { id :: String
+  , mag :: Number
+  , time :: Number
+  , felt :: Nullable Number
+  , tsunami :: Number 
   }
 
 mapSourceId :: Mapbox.SourceId

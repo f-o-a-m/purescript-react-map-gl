@@ -20,13 +20,18 @@ module Mapbox
   , addLayer
   , setData
   , mkPaintProperty
+  , mkGeoJsonSource
   ) where
 
 import Prelude
 
 import Data.Function.Uncurried (Fn2, runFn2)
+import Data.Maybe (Maybe)
+import Data.Nullable (Nullable)
+import Data.Nullable as Nullable
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
+import GeoJson (GeoJson)
 import Effect.Uncurried (EffectFn2, EffectFn3, runEffectFn2, runEffectFn3)
 import Foreign (Foreign)
 import Foreign.Object as FO
@@ -37,7 +42,16 @@ import Simple.JSON (class WriteForeign, writeImpl)
 foreign import data Map :: Type
 
 -- A source of Mapbox' style
-type Source r = (|r)
+-- `t` is a phantom type to specify the source
+type Source r t = (|r)
+-- Types of sources
+-- For now we do support `geojson` data only, 
+-- but following Mapbox documentation it could be 
+-- vector, raster, raster-dem, geojson, image, video
+-- https://docs.mapbox.com/mapbox-gl-js/style-spec/#sources
+data SourceType 
+  = GeoJsonSource
+
 -- Id of a source in Mapbox' style
 newtype SourceId = SourceId String
 derive newtype instance writeForeignSourceId :: WriteForeign SourceId
@@ -112,10 +126,16 @@ instance writeForeignExpression :: WriteForeign StyleExpression where
     SEString str -> writeImpl str
     SENumber no -> writeImpl no
 
-foreign import addSourceImpl :: forall r. EffectFn3 Map SourceId (Source r) Unit
+mkGeoJsonSource :: forall d . d -> Source (GeoJson d) SourceType
+mkGeoJsonSource d = 
+  { type: "geojson"
+  , data: d 
+  }
+
+foreign import addSourceImpl :: forall r. EffectFn3 Map SourceId (Source r SourceType) Unit
 -- | Adds a source to Mapbox' map style.
 -- | https://docs.mapbox.com/mapbox-gl-js/api/#map#addsource
-addSource :: forall r. Map -> SourceId -> Source r -> Effect Unit
+addSource :: forall r. Map -> SourceId -> Source r SourceType -> Effect Unit
 addSource = runEffectFn3 addSourceImpl
 
 foreign import addLayerImpl :: EffectFn2 Map Foreign Unit
@@ -124,16 +144,14 @@ foreign import addLayerImpl :: EffectFn2 Map Foreign Unit
 addLayer :: Map -> Layer -> Effect Unit
 addLayer map layer = runEffectFn2 addLayerImpl map (writeImpl layer)
 
-foreign import getSourceImpl :: forall r. Fn2 Map SourceId (Source r)
+foreign import getSourceImpl :: forall r. Fn2 Map SourceId (Nullable (Source r SourceType))
 -- | Returns a source of Mapbox' map style by a given Id
 -- | https://docs.mapbox.com/mapbox-gl-js/api/#map#getsource
-getSource :: forall r. Map -> SourceId -> Source r
-getSource = runFn2 getSourceImpl
+getSource :: forall r t. Map -> SourceId -> Maybe (Source r t)
+getSource map = Nullable.toMaybe <<< runFn2 getSourceImpl map
 
-type GeoJson r = Record(type::String|r)
-
-foreign import setDataImpl :: forall r. EffectFn3 Map SourceId (GeoJson r) Unit
+foreign import setDataImpl :: forall r. EffectFn3 Map SourceId (Source r SourceType) Unit
 -- | Sets the GeoJSON data and re-renders the map.
 -- | https://docs.mapbox.com/mapbox-gl-js/api/#geojsonsource#setdata
-setData :: forall r. Map -> SourceId -> GeoJson r -> Effect Unit 
+setData :: forall r. Map -> SourceId -> Source r SourceType -> Effect Unit 
 setData = runEffectFn3 setDataImpl
