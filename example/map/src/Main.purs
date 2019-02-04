@@ -11,7 +11,6 @@ import Effect.Uncurried (mkEffectFn1)
 import MapGL as MapGL
 import Partial.Unsafe (unsafePartial)
 import React as R
-import React.DOM.Props (onLoad)
 import ReactDOM (render)
 import Record (disjointUnion)
 import Web.DOM (Element)

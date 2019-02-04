@@ -4,12 +4,12 @@ sudo: required
 node_js: stable
 install:
   - npm i
-  - bower i --production
+  - bower i
 script:
   - npm run build
-  - bower i
   - npm run example-map
   - npm run example-map-halogen
+  - npm run example-heatmap-halogen
 deploy:
   provider: pages
   skip_cleanup: true
