@@ -28,7 +28,7 @@ import Effect.Class.Console as C
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Uncurried (mkEffectFn1)
-import GeoJson (Feature, FeatureCollection, mkFeatureCollection)
+import GeoJson as GeoJson
 import Halogen (liftEffect)
 import Halogen as H
 import Halogen.HTML as HH
@@ -142,7 +142,7 @@ mapClass = R.component "Map" \this -> do
       iMap <- Ref.read mapRef
       for_ (MapGL.getMap =<< iMap) \map -> do
         -- set initial (empty) data
-        let source = Mapbox.mkGeoJsonSource $ mkFeatureCollection []
+        let (source :: HeatmapData) = Mapbox.mkGeoJsonSource $ GeoJson.mkFeatureCollection []
         Mapbox.addSource map mapSourceId source
         -- initial heatmap layer
         Mapbox.addLayer map heatmapLayer
@@ -154,7 +154,7 @@ mapClass = R.component "Map" \this -> do
               -- update data of heatmap layer
               liftEffect $ Mapbox.setData map mapSourceId mapData
             Left err -> do
-              liftEffect $ C.error $ "error while loading earthquake data: "
+              liftEffect $ C.error $ "error while loading earthquake data: " <> show err
               pure unit
   
     mapRefHandler :: MapRef -> (Nullable R.ReactRef)-> Effect Unit
@@ -168,7 +168,8 @@ mapClass = R.component "Map" \this -> do
       { viewport } <- R.getState this
       pure $ R.createElement MapGL.mapGL
               (un MapGL.Viewport viewport `disjointUnion`
-              { onViewportChange: mkEffectFn1 $ \_ -> pure unit
+              { onViewportChange: mkEffectFn1 $ \vp -> 
+                  void $ R.writeState this {viewport: vp}
               , onClick: mkEffectFn1 $ \info -> do
                   launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages
               , onLoad: mapOnLoadHandler mapRef
@@ -189,10 +190,17 @@ data AjaxError
   | ResponseError String
   | DecodingError String
 
+instance showAjaxError :: Show AjaxError where 
+  show = case _ of 
+    HTTPStatus s -> "HTTP status error" <> s
+    ResponseError s -> "Response error" <> s
+    DecodingError s -> "Decode JSON error" <> s
+
+
 getMapData 
   :: forall m 
   . MonadAff m 
-  => m (Either AjaxError HeatmapData)
+  => m (Either AjaxError HeatmapDataFeatureCollection)
 getMapData = liftAff do
   {body, status} <- Affjax.get ResponseFormat.string dataUrl
   if (status /= StatusCode 200) 
@@ -201,16 +209,16 @@ getMapData = liftAff do
     else
       case body of 
         Left err ->
-          pure $ Left $ ResponseError$ Affjax.printResponseFormatError err
+          pure $ Left $ ResponseError $ Affjax.printResponseFormatError err
         Right str -> 
           pure $ either (Left <<< DecodingError <<< show) pure (JSON.readJSON str)
 
 dataUrl :: String 
 dataUrl = "https://docs.mapbox.com/mapbox-gl-js/assets/earthquakes.geojson"
 
-type HeatmapData = FeatureCollection HeatmapDataFeature
-
-type HeatmapDataFeature = Feature HeatmapDataProps
+type HeatmapData = Mapbox.GeoJsonSource HeatmapDataFeatureCollection
+type HeatmapDataFeatureCollection = GeoJson.FeatureCollection HeatmapDataFeature
+type HeatmapDataFeature = GeoJson.Feature GeoJson.PointGeometry HeatmapDataProps
 
 type HeatmapDataProps =
   { id :: String
