@@ -80,7 +80,6 @@ mapComponent =
   eval :: MapQuery ~> H.ComponentDSL MapState MapQuery MapMessages m
   eval = case _ of
     Initialize next -> do
-      mapRef <- H.liftEffect $ Ref.new Nothing
       H.getHTMLElementRef (H.RefLabel "map") >>= case _ of
         Nothing -> unsafeCrashWith "There must be an element with ref `map`"
         Just el' -> do
@@ -88,7 +87,7 @@ mapComponent =
           width <- liftEffect $ toNumber <$> Window.innerWidth win
           height <- liftEffect $ toNumber <$> Window.innerHeight win
           messages <- liftAff Bus.make
-          liftEffect $ void $ RDOM.render (R.createLeafElement mapClass { messages: snd $ Bus.split messages, width, height, mapRef}) (HTMLElement.toElement el')
+          liftEffect $ void $ RDOM.render (R.createLeafElement mapClass { messages: snd $ Bus.split messages, width, height}) (HTMLElement.toElement el')
           H.subscribe $ H.eventSource (\emit -> launchAff_ $ fix \loop -> do
               Bus.read messages >>= emit >>> liftEffect
               loop
@@ -109,7 +108,6 @@ type Props =
   { messages :: Bus.BusW Messages
   , width :: Number
   , height :: Number
-  , mapRef :: MapRef
   }
 
 type State =
@@ -118,9 +116,10 @@ type State =
 
 mapClass :: R.ReactClass Props
 mapClass = R.component "Map" \this -> do
+  mapRef <- H.liftEffect $ Ref.new Nothing
   { width, height } <- R.getProps this
   pure 
-    { render: render this
+    { render: render this mapRef
     , state:
         { viewport: Viewport
           { width
@@ -158,13 +157,12 @@ mapClass = R.component "Map" \this -> do
               pure unit
   
     mapRefHandler :: MapRef -> (Nullable R.ReactRef)-> Effect Unit
-    mapRefHandler mapRef ref = do
-      _ <- Ref.write (Nullable.toMaybe $ unsafeCoerce ref) mapRef
-      pure unit
+    mapRefHandler mapRef ref =
+      Ref.write (Nullable.toMaybe $ unsafeCoerce ref) mapRef
 
-    render :: R.ReactThis Props State -> R.Render
-    render this = do
-      { messages, mapRef } <- R.getProps this
+    render :: R.ReactThis Props State -> MapRef -> R.Render
+    render this mapRef = do
+      { messages } <- R.getProps this
       { viewport } <- R.getState this
       pure $ R.createElement MapGL.mapGL
               (un MapGL.Viewport viewport `disjointUnion`
