@@ -23,6 +23,7 @@ module Mapbox
   , setData
   , mkPaintProperty
   , mkGeoJsonSource
+  , setLayerVisibilty
   ) where
 
 import Prelude
@@ -158,3 +159,9 @@ foreign import setDataImpl :: forall r. EffectFn3 Map SourceId (Source r) Unit
 -- | https://docs.mapbox.com/mapbox-gl-js/api/#geojsonsource#setdata
 setData :: forall r. Map -> SourceId -> Source r -> Effect Unit 
 setData = runEffectFn3 setDataImpl
+
+foreign import setLayerVisibiltyImpl :: EffectFn3 Map LayerId Boolean Unit
+-- | Show or hide a layer by changing `visibility` property
+-- | https://docs.mapbox.com/mapbox-gl-js/style-spec/#layout-background-visibility
+setLayerVisibilty :: Map -> LayerId -> Boolean -> Effect Unit 
+setLayerVisibilty = runEffectFn3 setLayerVisibiltyImpl
