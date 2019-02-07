@@ -3,6 +3,7 @@ module MapComponent
   , Messages(..)
   , MapProps
   , MapMessages(..)
+  , Commands(..)
   , mapComponent
   ) where
 
@@ -21,7 +22,7 @@ import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Data.Tuple (snd)
 import Effect (Effect)
-import Effect.Aff (launchAff_)
+import Effect.Aff (error, launchAff_)
 import Effect.Aff.Bus as Bus
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class.Console as C
@@ -32,6 +33,7 @@ import GeoJson as GeoJson
 import Halogen (liftEffect)
 import Halogen as H
 import Halogen.HTML as HH
+import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query.EventSource as ES
 import MapGL (ClickInfo, InteractiveMap, Viewport(..))
@@ -48,13 +50,14 @@ import Web.HTML.HTMLElement as HTMLElement
 import Web.HTML.Window as Window
 
 
-type MapState = {}
+type MapState = Maybe (Bus.BusW Commands)
 
 type MapProps = Unit
 
 data MapQuery a
   = Initialize a
   | HandleMessages Messages a
+  | ToggleHeatmap a
 
 data MapMessages
   = OnClick ClickInfo
@@ -72,10 +75,19 @@ mapComponent =
   where
 
   initialState :: MapState
-  initialState = {}
+  initialState = Nothing
 
   render :: MapState -> H.ComponentHTML MapQuery
-  render = const $ HH.div [ HP.ref (H.RefLabel "map") ] []
+  render = const $
+    HH.div 
+      [ HP.class_ $ HH.ClassName "map-wrapper" ] 
+      [ HH.div [ HP.ref (H.RefLabel "map") ] []
+      , HH.button
+          [ HP.class_ $ HH.ClassName "btn-toggle"
+          , HE.onClick $ HE.input_ ToggleHeatmap
+          ]
+          [ HH.text "Toggle heatmap" ]
+      ]
 
   eval :: MapQuery ~> H.ComponentDSL MapState MapQuery MapMessages m
   eval = case _ of
@@ -97,12 +109,22 @@ mapComponent =
     HandleMessages msg next -> do
       case msg of
         PublicMsg msg' -> H.raise msg'
+        IsInitialized bus -> H.put $ Just bus
+      pure next
+    ToggleHeatmap next -> do 
+      mbBus <- H.get
+      for_ mbBus \bus ->
+        liftAff $ Bus.write ToggleHeatmap' bus
       pure next
 
 type MapRef = Ref (Maybe InteractiveMap)
 
+data Commands
+  = ToggleHeatmap'
+
 data Messages
-  = PublicMsg MapMessages
+  = IsInitialized (Bus.BusW Commands)
+  | PublicMsg MapMessages
 
 type Props =
   { messages :: Bus.BusW Messages
@@ -111,15 +133,21 @@ type Props =
   }
 
 type State =
-  { viewport :: Viewport
+  { command :: Bus.BusRW Commands
+  , viewport :: Viewport
+  , showHeatmap :: Boolean
   }
 
 mapClass :: R.ReactClass Props
 mapClass = R.component "Map" \this -> do
   mapRef <- H.liftEffect $ Ref.new Nothing
-  { width, height } <- R.getProps this
+  command <- Bus.make
+  { width, height, messages } <- R.getProps this
+  launchAff_ $ Bus.write (IsInitialized $ snd $ Bus.split command) messages
   pure 
-    { render: render this mapRef
+    { componentDidMount: componentDidMount this mapRef
+    , componentWillUnmount: componentWillUnmount this mapRef
+    , render: render this mapRef
     , state:
         { viewport: Viewport
           { width
@@ -130,9 +158,33 @@ mapClass = R.component "Map" \this -> do
           , pitch: 0.0
           , bearing: 0.0
           }
+        , command
+        , showHeatmap: true
         }
     }
   where
+    componentWillUnmount :: R.ReactThis Props State -> MapRef -> R.ComponentWillUnmount
+    componentWillUnmount this mapRef = do
+      H.liftEffect $ Ref.write Nothing mapRef
+      { command } <- R.getState this
+      launchAff_ $ do
+        props <- liftEffect $ R.getProps this
+        Bus.kill (error "kill from componentWillUnmount") command
+
+    componentDidMount :: R.ReactThis Props State -> MapRef -> R.ComponentDidMount
+    componentDidMount this mapRef = do
+      { command } <- R.getState this
+      launchAff_ $ fix \loop -> do
+        msg <- Bus.read command
+        case msg of
+          ToggleHeatmap' -> liftEffect $ do
+            {showHeatmap} <- R.getState this
+            let visible = not showHeatmap
+            iMap <- Ref.read mapRef
+            for_ (MapGL.getMap =<< iMap) \map -> do
+              Mapbox.setLayerVisibilty map mapLayerId visible
+            R.setState this {showHeatmap: visible}
+        loop
 
     mapOnLoadHandler 
       :: MapRef
@@ -167,7 +219,7 @@ mapClass = R.component "Map" \this -> do
       pure $ R.createElement MapGL.mapGL
               (un MapGL.Viewport viewport `disjointUnion`
               { onViewportChange: mkEffectFn1 $ \vp -> 
-                  void $ R.writeState this {viewport: vp}
+                  void $ R.setState this {viewport: vp}
               , onClick: mkEffectFn1 $ \info -> do
                   launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages
               , onLoad: mapOnLoadHandler mapRef
