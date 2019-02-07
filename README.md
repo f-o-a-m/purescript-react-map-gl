@@ -12,5 +12,5 @@ for [mapbox-gl-js](https://github.com/mapbox/mapbox-gl-js). Additionally, react-
 You can see some examples in `example` directory. It is also hosted [here](https://f-o-a-m.github.io/purescript-react-map-gl/)
 
 ## npm requirements
-- react >= 16.0.0
-- react-map-gl >= 3.2.1
+- react >= 16.0.3
+- react-map-gl >= 4.0.8

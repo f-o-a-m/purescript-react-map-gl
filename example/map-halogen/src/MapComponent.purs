@@ -176,6 +176,7 @@ mapClass = R.component "Map" \this -> do
             launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages
         , mapStyle: mapStyle
         , mapboxApiAccessToken: mapboxApiAccessToken
+        , onLoad: pure unit
         })
         []
 

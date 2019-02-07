@@ -58,6 +58,7 @@ mapClass = R.component "Map" \this -> do
               log $ "Clicked map: " <> show info.lngLat
           , mapStyle: mapStyle
           , mapboxApiAccessToken: mapboxApiAccessToken
+          , onLoad: pure unit
           })
           []
 
