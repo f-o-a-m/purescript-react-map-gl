@@ -294,11 +294,11 @@ heatmapWeight = Mapbox.mkPaintProperty "heatmap-weight"
   [ -- interpolate expression
     -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-interpolate
     Mapbox.SEString "interpolate"
-  , Mapbox.SEArray ["linear"]
+  , Mapbox.SEArray [Mapbox.SEString "linear"]
   -- "get" expression
   -- Retrieves a property value from the current feature's properties
   -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-get
-  , Mapbox.SEArray ["get", "mag"]
+  , Mapbox.SEArray [Mapbox.SEString "get", Mapbox.SEString "mag"]
   , Mapbox.SENumber 0.0
   , Mapbox.SENumber 0.0
   , Mapbox.SENumber 6.0
@@ -311,8 +311,8 @@ heatmapWeight = Mapbox.mkPaintProperty "heatmap-weight"
 heatmapIntensity :: Mapbox.PaintProperty
 heatmapIntensity = Mapbox.mkPaintProperty "heatmap-intensity"
   [ Mapbox.SEString "interpolate"
-  , Mapbox.SEArray ["linear"]
-  , Mapbox.SEArray ["zoom"]
+  , Mapbox.SEArray [Mapbox.SEString "linear"]
+  , Mapbox.SEArray [Mapbox.SEString "zoom"]
   , Mapbox.SENumber 0.0
   , Mapbox.SENumber 1.0
   , Mapbox.SENumber maxZoom
@@ -326,8 +326,8 @@ heatmapIntensity = Mapbox.mkPaintProperty "heatmap-intensity"
 heatmapColor :: Mapbox.PaintProperty
 heatmapColor = Mapbox.mkPaintProperty "heatmap-color"
   [ Mapbox.SEString "interpolate"
-  , Mapbox.SEArray ["linear"]
-  , Mapbox.SEArray ["heatmap-density"]
+  , Mapbox.SEArray [Mapbox.SEString "linear"]
+  , Mapbox.SEArray [Mapbox.SEString "heatmap-density"]
   , Mapbox.SENumber 0.0
   , Mapbox.SEString "rgba(33,102,172,0)"
   , Mapbox.SENumber 0.2
@@ -347,8 +347,8 @@ heatmapColor = Mapbox.mkPaintProperty "heatmap-color"
 heatmapRadius :: Mapbox.PaintProperty
 heatmapRadius = Mapbox.mkPaintProperty "heatmap-radius"
   [ Mapbox.SEString "interpolate"
-  , Mapbox.SEArray ["linear"]
-  , Mapbox.SEArray ["zoom"]
+  , Mapbox.SEArray [Mapbox.SEString "exponential", Mapbox.SENumber 1.75]
+  , Mapbox.SEArray [Mapbox.SEString "zoom"]
   -- zoom is 0 -> radius will be 2px
   , Mapbox.SENumber 0.0
   , Mapbox.SENumber 2.0
@@ -362,8 +362,8 @@ heatmapRadius = Mapbox.mkPaintProperty "heatmap-radius"
 heatmapOpacity :: Mapbox.PaintProperty
 heatmapOpacity = Mapbox.mkPaintProperty "heatmap-opacity"
   [ Mapbox.SEString "interpolate"
-  , Mapbox.SEArray ["linear"]
-  , Mapbox.SEArray ["zoom"]
+  , Mapbox.SEArray [Mapbox.SEString "linear"]
+  , Mapbox.SEArray [Mapbox.SEString "zoom"]
   -- zoom is 7 (or less) -> opacity will be 1
   , Mapbox.SENumber 7.0
   , Mapbox.SENumber 1.0
