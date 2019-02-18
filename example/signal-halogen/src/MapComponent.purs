@@ -264,18 +264,16 @@ getMapData = liftAff do
           pure $ either (Left <<< DecodingError <<< show) pure (JSON.readJSON str)
 
 dataUrl :: String 
-dataUrl = "https://docs.mapbox.com/mapbox-gl-js/assets/earthquakes.geojson"
+dataUrl = "https://gist.githubusercontent.com/kejace/aa774747e093cba31cfe30b8ec5c517f/raw/28715eb9f259e7ee10a852c91050dd5b67694374/foam-signals.geojson"
 
 type HeatmapData = Mapbox.GeoJsonSource HeatmapDataFeatureCollection
 type HeatmapDataFeatureCollection = GeoJson.FeatureCollection HeatmapDataFeature
 type HeatmapDataFeature = GeoJson.Feature GeoJson.PointGeometry HeatmapDataProps
 
 type HeatmapDataProps =
-  { id :: String
-  , mag :: Number
-  , time :: Number
-  , felt :: Nullable Number
-  , tsunami :: Number 
+  { tokenId :: String
+  , radius :: Number
+  , stake :: Number
   }
 
 mapSourceId :: Mapbox.SourceId
@@ -285,39 +283,7 @@ mapLayerId :: Mapbox.LayerId
 mapLayerId = Mapbox.LayerId "heatmap-layer"
 
 maxZoom :: Number 
-maxZoom = 9.0
-
--- Increase the heatmap weight based on a property.
--- This property has to be defined in a `feature` of a `FeatureCollection`
-heatmapWeight :: Mapbox.PaintProperty
-heatmapWeight = Mapbox.mkPaintProperty "heatmap-weight"
-  [ -- interpolate expression
-    -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-interpolate
-    Mapbox.SEString "interpolate"
-  , Mapbox.SEArray [Mapbox.SEString "linear"]
-  -- "get" expression
-  -- Retrieves a property value from the current feature's properties
-  -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-get
-  , Mapbox.SEArray [Mapbox.SEString "get", Mapbox.SEString "mag"]
-  , Mapbox.SENumber 0.0
-  , Mapbox.SENumber 0.0
-  , Mapbox.SENumber 6.0
-  , Mapbox.SENumber 1.0
-  ]
-
--- Increase the heatmap color weight weight by zoom level
--- heatmap-intensity is a multiplier on top of heatmap-weight
--- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-intensity
-heatmapIntensity :: Mapbox.PaintProperty
-heatmapIntensity = Mapbox.mkPaintProperty "heatmap-intensity"
-  [ Mapbox.SEString "interpolate"
-  , Mapbox.SEArray [Mapbox.SEString "linear"]
-  , Mapbox.SEArray [Mapbox.SEString "zoom"]
-  , Mapbox.SENumber 0.0
-  , Mapbox.SENumber 1.0
-  , Mapbox.SENumber maxZoom
-  , Mapbox.SENumber 3.0
-  ]
+maxZoom = 20.0 
 
 -- Color ramp for heatmap.  Domain is 0 (low) to 1 (high).
 -- Begin color ramp at 0-stop with a 0-transparancy color
@@ -329,7 +295,7 @@ heatmapColor = Mapbox.mkPaintProperty "heatmap-color"
   , Mapbox.SEArray [Mapbox.SEString "linear"]
   , Mapbox.SEArray [Mapbox.SEString "heatmap-density"]
   , Mapbox.SENumber 0.0
-  , Mapbox.SEString "rgba(33,102,172,0)"
+  , Mapbox.SEString "rgba(33,102,172,0)" -- color for zero values == kinda transparent background
   , Mapbox.SENumber 0.2
   , Mapbox.SEString "rgb(103,169,207)"
   , Mapbox.SENumber 0.4
@@ -337,24 +303,17 @@ heatmapColor = Mapbox.mkPaintProperty "heatmap-color"
   , Mapbox.SENumber 0.6
   , Mapbox.SEString "rgb(253,219,199)"
   , Mapbox.SENumber 0.8
-  , Mapbox.SEString "rgb(239,138,98)"
+  , Mapbox.SEString "rgb(247,193,171)"
   , Mapbox.SENumber 0.9
   , Mapbox.SEString "rgb(255,201,101)"
-  ]
-
--- Adjust the heatmap radius by zoom level
--- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-radius
-heatmapRadius :: Mapbox.PaintProperty
-heatmapRadius = Mapbox.mkPaintProperty "heatmap-radius"
-  [ Mapbox.SEString "interpolate"
-  , Mapbox.SEArray [Mapbox.SEString "exponential", Mapbox.SENumber 1.75]
-  , Mapbox.SEArray [Mapbox.SEString "zoom"]
-  -- zoom is 0 -> radius will be 2px
-  , Mapbox.SENumber 0.0
-  , Mapbox.SENumber 2.0
-  -- zoom is 9 -> radius will be 20px
-  , Mapbox.SENumber maxZoom
-  , Mapbox.SENumber 20.0
+  , Mapbox.SENumber 0.93
+  , Mapbox.SEString "rgb(255,207,117)"
+  , Mapbox.SENumber 0.95
+  , Mapbox.SEString "rgb(255,210,128)"    
+  , Mapbox.SENumber 0.97
+  , Mapbox.SEString "rgb(255,214,138)"
+  , Mapbox.SENumber 1.0
+  , Mapbox.SEString "rgb(255,219,153)"    
   ]
 
 -- Transition from heatmap to circle layer by zoom level
@@ -364,11 +323,85 @@ heatmapOpacity = Mapbox.mkPaintProperty "heatmap-opacity"
   [ Mapbox.SEString "interpolate"
   , Mapbox.SEArray [Mapbox.SEString "linear"]
   , Mapbox.SEArray [Mapbox.SEString "zoom"]
-  -- zoom is 7 (or less) -> opacity will be 1
-  , Mapbox.SENumber 7.0
+  -- min. values of `zoom`, `heatmap-opacity` pair
+  , Mapbox.SENumber 0.0 -- zoom
+  , Mapbox.SENumber 1.0 -- opacity
+  -- max. values of `zoom`, `heatmap-opacity` pair
+  , Mapbox.SENumber 20.0 -- zoom
+  , Mapbox.SENumber 0.0 -- opacity
+  ]
+
+-- Adjust the heatmap radius by zoom level
+-- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-radius
+heatmapRadius :: Mapbox.PaintProperty
+heatmapRadius = Mapbox.mkPaintProperty "heatmap-radius"
+  [ Mapbox.SEString "interpolate"
+  , Mapbox.SEArray [Mapbox.SEString "exponential", Mapbox.SENumber 1.75]
+  , Mapbox.SEArray [Mapbox.SEString "zoom"]
   , Mapbox.SENumber 1.0
-  -- zoom is 9 (or greater) -> opacity will be 0
-  , Mapbox.SENumber maxZoom
+  , over "radius" 50000.0
+  , Mapbox.SENumber 6.0
+  , over "radius" 30000.0  
+  , Mapbox.SENumber 12.0
+  , over "radius" 1500.0  
+  , Mapbox.SENumber 20.0
+  , over "radius" 5.0
+  ]
+    where
+  over r n = 
+    Mapbox.SEArray 
+      [ Mapbox.SEString "/"
+      , Mapbox.SEArray 
+        [ Mapbox.SEString "get"
+        , Mapbox.SEString r
+        ]
+      , Mapbox.SENumber n
+      ]
+
+-- Increase the heatmap weight based on a property.
+-- This property has to be defined in a `feature` of a `FeatureCollection`
+heatmapWeight :: Mapbox.PaintProperty
+heatmapWeight = Mapbox.mkPaintProperty "heatmap-weight"
+  [ -- interpolate expression
+    -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-interpolate
+    Mapbox.SEString "interpolate"
+  , Mapbox.SEArray [Mapbox.SEString "exponential", Mapbox.SENumber 1.75]
+  , Mapbox.SEArray [Mapbox.SEString "zoom"]
+  , Mapbox.SENumber 1.0
+  , linear "stake" 0.2 10000000000.0
+  , Mapbox.SENumber 6.0
+  , linear "stake" 0.5 10000000000.0
+  , Mapbox.SENumber 12.0
+  , linear "stake" 2.0 10000000000.0
+  , Mapbox.SENumber 20.0
+  , linear "stake" 4.0 10000000000.0
+  ]
+    where 
+  linear s c n = 
+    Mapbox.SEArray
+      [ Mapbox.SEString "+"
+      , Mapbox.SENumber c
+      , Mapbox.SEArray 
+        [ Mapbox.SEString "/"
+        , Mapbox.SEArray 
+          [ Mapbox.SEString "get"
+          , Mapbox.SEString s
+          ]
+        , Mapbox.SENumber n
+        ]
+      ]
+
+-- Increase the heatmap color weight weight by zoom level
+-- heatmap-intensity is a multiplier on top of heatmap-weight
+-- https://docs.mapbox.com/mapbox-gl-js/style-spec/#paint-heatmap-heatmap-intensity
+heatmapIntensity :: Mapbox.PaintProperty
+heatmapIntensity = Mapbox.mkPaintProperty "heatmap-intensity"
+  [ Mapbox.SEString "interpolate"
+  , Mapbox.SEArray [Mapbox.SEString "linear"]
+  , Mapbox.SEArray [Mapbox.SEString "zoom"]
+  , Mapbox.SENumber 1.0
+  , Mapbox.SENumber 1.2
+  , Mapbox.SENumber 20.0
   , Mapbox.SENumber 0.0
   ]
 

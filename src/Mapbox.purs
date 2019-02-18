@@ -126,7 +126,7 @@ derive newtype instance writeForeignLayerId :: WriteForeign LayerId
 -- Mapbox' style expression
 -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions
 data StyleExpression 
-  = SEArray (Array String)
+  = SEArray (Array StyleExpression)
   | SEString String
   | SENumber Number
 
