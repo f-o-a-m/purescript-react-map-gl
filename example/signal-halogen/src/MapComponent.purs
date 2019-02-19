@@ -264,7 +264,7 @@ getMapData = liftAff do
           pure $ either (Left <<< DecodingError <<< show) pure (JSON.readJSON str)
 
 dataUrl :: String 
-dataUrl = "https://gist.githubusercontent.com/kejace/aa774747e093cba31cfe30b8ec5c517f/raw/28715eb9f259e7ee10a852c91050dd5b67694374/foam-signals.geojson"
+dataUrl = "https://gist.githubusercontent.com/kejace/1cb8711792da3e1fc309a40f77ea3266/raw/dd7f1e19d4a9056c15a898a22e04c3a2c7c7cbd2/signals2.geojson"
 
 type HeatmapData = Mapbox.GeoJsonSource HeatmapDataFeatureCollection
 type HeatmapDataFeatureCollection = GeoJson.FeatureCollection HeatmapDataFeature
@@ -339,13 +339,13 @@ heatmapRadius = Mapbox.mkPaintProperty "heatmap-radius"
   , Mapbox.SEArray [Mapbox.SEString "exponential", Mapbox.SENumber 1.75]
   , Mapbox.SEArray [Mapbox.SEString "zoom"]
   , Mapbox.SENumber 1.0
-  , over "radius" 50000.0
+  , over "radius" 250.0
   , Mapbox.SENumber 6.0
-  , over "radius" 30000.0  
+  , over "radius" 150.0  
   , Mapbox.SENumber 12.0
-  , over "radius" 1500.0  
+  , over "radius" 9.0  
   , Mapbox.SENumber 20.0
-  , over "radius" 5.0
+  , over "radius" 0.1 
   ]
     where
   over r n = 
@@ -368,13 +368,13 @@ heatmapWeight = Mapbox.mkPaintProperty "heatmap-weight"
   , Mapbox.SEArray [Mapbox.SEString "exponential", Mapbox.SENumber 1.75]
   , Mapbox.SEArray [Mapbox.SEString "zoom"]
   , Mapbox.SENumber 1.0
-  , linear "stake" 0.2 10000000000.0
+  , linear "stake" 0.2 10000000.0
   , Mapbox.SENumber 6.0
-  , linear "stake" 0.5 10000000000.0
+  , linear "stake" 0.5 1000000.0
   , Mapbox.SENumber 12.0
-  , linear "stake" 2.0 10000000000.0
+  , linear "stake" 3.0 100000.0
   , Mapbox.SENumber 20.0
-  , linear "stake" 4.0 10000000000.0
+  , linear "stake" 4.0 1000.0
   ]
     where 
   linear s c n = 
