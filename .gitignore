@@ -10,3 +10,4 @@
 .psc-ide-port
 .vscode/
 package-lock.json
+example/*/*/*.js

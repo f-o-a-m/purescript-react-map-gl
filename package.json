@@ -14,9 +14,9 @@
   },
   "scripts": {
     "build": "pulp build",
-    "example-map": "pulp browserify --include example/map/src --to example/map/dist/example.js",
-    "example-map-halogen": "pulp browserify --include example/map-halogen/src --to example/map-halogen/dist/example.js",
-    "example-heatmap-halogen": "pulp browserify --include example/heatmap-halogen/src --to example/heatmap-halogen/dist/example.js",
-    "example-signal-halogen": "pulp browserify --include example/signal-halogen/src --to example/signal-halogen/dist/example.js"
+    "example-map": "pulp browserify --include example/map/src --to example/map/dist/map.js",
+    "example-map-halogen": "pulp browserify --include example/map-halogen/src --to example/map-halogen/dist/map-halogen.js",
+    "example-heatmap-halogen": "pulp browserify --include example/heatmap-halogen/src --to example/heatmap-halogen/dist/heatmap-halogen.js",
+    "example-signal-halogen": "pulp browserify --include example/signal-halogen/src --to example/signal-halogen/dist/signal-halogen.js"
   }
 }
