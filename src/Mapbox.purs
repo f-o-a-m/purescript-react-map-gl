@@ -17,6 +17,9 @@ module Mapbox
   , StyleExpression(..)
   , GeoJsonData
   , GeoJsonSource
+  , Layout(..)
+  , LayerVisibility(..)
+  , HeatmapLayoutProperties
   , getSource
   , addSource
   , addLayer
@@ -91,7 +94,7 @@ instance writeForeignLayerType :: WriteForeign LayerType where
     Heatmap -> writeImpl "heatmap"
     Hillshade -> writeImpl "hillshade"
 
--- Paint property
+-- `paint` property
 -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#layer-paint
 type PaintProperty = Tuple String (Array StyleExpression)
 
@@ -106,14 +109,39 @@ newtype Paint = Paint (Array PaintProperty)
 instance writeForeignPaint :: WriteForeign Paint where
   writeImpl (Paint arr)= writeImpl $ FO.fromFoldable arr
 
+-- `layout` property to show or hide a layer
+-- Example https://docs.mapbox.com/mapbox-gl-js/style-spec/#layout-heatmap-visibility
+data LayerVisibility
+  = LayerVisible 
+  | LayerNone 
+
+instance writeForeignLayerVisibility :: WriteForeign LayerVisibility where
+  writeImpl = case _ of 
+    LayerVisible -> writeImpl "visible"
+    LayerNone -> writeImpl "none"
+
+-- `layout` properties of a `heatmap-layer`
+-- https://docs.mapbox.com/mapbox-gl-js/style-spec/#layers-heatmap
+type HeatmapLayoutProperties = { visibility :: LayerVisibility }
+
+-- Object to describe layout properties of any kind of layer
+-- https://docs.mapbox.com/mapbox-gl-js/style-spec/#layer-layout
+-- Note: Currently we do support layout of `heatmap-layer` only
+data Layout = HeatmapLayout HeatmapLayoutProperties
+
+instance writeForeignLayout :: WriteForeign Layout where
+  writeImpl = case _ of
+    HeatmapLayout props -> writeImpl props
+
 -- A Mapbox' style layer
 newtype Layer = Layer 
-  { id:: LayerId
+  { id :: LayerId
   , source :: SourceId 
   , type :: LayerType
   , minzoom :: Number
   , maxzoom :: Number
   , paint :: Paint
+  , layout :: Layout
   }
 
 instance writeForeignLayer :: WriteForeign Layer where

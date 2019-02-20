@@ -16,7 +16,7 @@ import Control.Lazy (fix)
 import Data.Either (Either(..), either)
 import Data.Foldable (for_)
 import Data.Int (toNumber)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isJust)
 import Data.Newtype (un)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
@@ -44,13 +44,17 @@ import React as R
 import ReactDOM (render) as RDOM
 import Record (disjointUnion)
 import Simple.JSON as JSON
+import Type.Data.Boolean (kind Boolean)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.HTML (window)
 import Web.HTML.HTMLElement as HTMLElement
 import Web.HTML.Window as Window
 
 
-type MapState = Maybe (Bus.BusW Commands)
+type MapState = 
+  { bus :: Maybe (Bus.BusW Commands)
+  , showHeatmap :: Boolean
+  }
 
 type MapProps = Unit
 
@@ -75,18 +79,23 @@ mapComponent =
   where
 
   initialState :: MapState
-  initialState = Nothing
+  initialState = {bus: Nothing, showHeatmap: false}
 
   render :: MapState -> H.ComponentHTML MapQuery
-  render = const $
+  render st =
     HH.div 
       [ HP.class_ $ HH.ClassName "map-wrapper" ] 
       [ HH.div [ HP.ref (H.RefLabel "map") ] []
       , HH.button
-          [ HP.class_ $ HH.ClassName "btn-toggle"
-          , HE.onClick $ HE.input_ ToggleHeatmap
-          ]
-          [ HH.text "Toggle heatmap" ]
+        [ HP.class_ $ HH.ClassName "btn-toggle"
+        , HE.onClick $ HE.input_ ToggleHeatmap
+        ]
+        [ HH.text $
+            (if st.showHeatmap 
+                then "Hide" 
+                else "Show")
+            <> " heatmap" 
+        ]
       ]
 
   eval :: MapQuery ~> H.ComponentDSL MapState MapQuery MapMessages m
@@ -109,18 +118,20 @@ mapComponent =
     HandleMessages msg next -> do
       case msg of
         PublicMsg msg' -> H.raise msg'
-        IsInitialized bus -> H.put $ Just bus
+        IsInitialized bus -> H.modify_ _{bus = Just bus}
       pure next
     ToggleHeatmap next -> do 
-      mbBus <- H.get
+      {bus: mbBus, showHeatmap} <- H.get
+      let visible = not showHeatmap
       for_ mbBus \bus ->
-        liftAff $ Bus.write ToggleHeatmap' bus
+        liftAff $ Bus.write (SetHeatmapVisibilty visible) bus
+      H.modify_ _{showHeatmap = visible}
       pure next
 
 type MapRef = Ref (Maybe InteractiveMap)
 
 data Commands
-  = ToggleHeatmap'
+  = SetHeatmapVisibilty Boolean
 
 data Messages
   = IsInitialized (Bus.BusW Commands)
@@ -135,7 +146,6 @@ type Props =
 type State =
   { command :: Bus.BusRW Commands
   , viewport :: Viewport
-  , showHeatmap :: Boolean
   }
 
 mapClass :: R.ReactClass Props
@@ -159,7 +169,6 @@ mapClass = R.component "Map" \this -> do
           , bearing: 0.0
           }
         , command
-        , showHeatmap: true
         }
     }
   where
@@ -177,13 +186,12 @@ mapClass = R.component "Map" \this -> do
       launchAff_ $ fix \loop -> do
         msg <- Bus.read command
         case msg of
-          ToggleHeatmap' -> liftEffect $ do
-            {showHeatmap} <- R.getState this
-            let visible = not showHeatmap
+          SetHeatmapVisibilty visible -> liftEffect $ do
             iMap <- Ref.read mapRef
-            for_ (MapGL.getMap =<< iMap) \map -> do
-              Mapbox.setLayerVisibilty map mapLayerId visible
-            R.setState this {showHeatmap: visible}
+            for_ (MapGL.getMap =<< iMap) \map ->
+              -- make sure a `heatmap-layer` is already available at this point
+              when (isJust $ Mapbox.getSource map mapSourceId) $
+                Mapbox.setLayerVisibilty map mapLayerId visible
         loop
 
     mapOnLoadHandler 
@@ -381,6 +389,9 @@ paint = Mapbox.Paint
   , heatmapOpacity
   ]
 
+layout :: Mapbox.Layout
+layout = Mapbox.HeatmapLayout { visibility: Mapbox.LayerNone }
+
 heatmapLayer :: Mapbox.Layer
 heatmapLayer = Mapbox.Layer
   { id: mapLayerId
@@ -389,4 +400,5 @@ heatmapLayer = Mapbox.Layer
   , minzoom: 0.0
   , maxzoom: maxZoom 
   , paint
+  , layout
   }

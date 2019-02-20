@@ -414,6 +414,9 @@ paint = Mapbox.Paint
   , heatmapOpacity
   ]
 
+layout :: Mapbox.Layout
+layout = Mapbox.HeatmapLayout { visibility: Mapbox.LayerVisible }
+
 heatmapLayer :: Mapbox.Layer
 heatmapLayer = Mapbox.Layer
   { id: mapLayerId
@@ -422,4 +425,5 @@ heatmapLayer = Mapbox.Layer
   , minzoom: 0.0
   , maxzoom: maxZoom 
   , paint
+  , layout
   }
