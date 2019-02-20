@@ -61,7 +61,7 @@ type MapProps = Unit
 data MapQuery a
   = Initialize a
   | HandleMessages Messages a
-  | ToggleHeatmap a
+  | SetHeatmapVisibilty a
 
 data MapMessages
   = OnClick ClickInfo
@@ -88,7 +88,7 @@ mapComponent =
       [ HH.div [ HP.ref (H.RefLabel "map") ] []
       , HH.button
         [ HP.class_ $ HH.ClassName "btn-toggle"
-        , HE.onClick $ HE.input_ ToggleHeatmap
+        , HE.onClick $ HE.input_ SetHeatmapVisibilty
         ]
         [ HH.text $
             (if st.showHeatmap 
@@ -120,18 +120,18 @@ mapComponent =
         PublicMsg msg' -> H.raise msg'
         IsInitialized bus -> H.modify_ _{bus = Just bus}
       pure next
-    ToggleHeatmap next -> do 
+    SetHeatmapVisibilty next -> do 
       {bus: mbBus, showHeatmap} <- H.get
       let visible = not showHeatmap
       for_ mbBus \bus ->
-        liftAff $ Bus.write (ToggleHeatmap' visible) bus
+        liftAff $ Bus.write (SetHeatmapVisibilty' visible) bus
       H.modify_ _{showHeatmap = visible}
       pure next
 
 type MapRef = Ref (Maybe InteractiveMap)
 
 data Commands
-  = ToggleHeatmap' Boolean
+  = SetHeatmapVisibilty' Boolean
 
 data Messages
   = IsInitialized (Bus.BusW Commands)
@@ -186,7 +186,7 @@ mapClass = R.component "Map" \this -> do
       launchAff_ $ fix \loop -> do
         msg <- Bus.read command
         case msg of
-          ToggleHeatmap' visible -> liftEffect $ do
+          SetHeatmapVisibilty' visible -> liftEffect $ do
             iMap <- Ref.read mapRef
             for_ (MapGL.getMap =<< iMap) \map ->
               -- make sure a `heatmap-layer` is already available at this point
