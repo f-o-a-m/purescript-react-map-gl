@@ -9,6 +9,7 @@ module MapGL
   , MapPropsR
   , mkProps
   , mapGL
+  , defaultProps
   , getMap
   ) where
 
@@ -65,6 +66,8 @@ type MapPropsR r =
   , mapStyle :: String
   , mapboxApiAccessToken :: String
   , children :: R.Children
+  , dragRotate :: Boolean
+  , touchZoomRotate :: Boolean
   | r
   )
 
@@ -74,6 +77,7 @@ mkProps :: Viewport -> Record (MapPropsR ()) -> MapProps
 mkProps (Viewport vp) rest = disjointUnion rest vp
 
 foreign import mapGL :: R.ReactClass MapProps
+foreign import defaultProps :: MapProps
 
 -- Default map component by `ReactMapGL` to render `MapboxGL`
 -- https://github.com/uber/react-map-gl/blob/master/docs/components/interactive-map.md
