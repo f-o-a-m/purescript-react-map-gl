@@ -226,6 +226,8 @@ mapClass = R.component "Map" \this -> do
               , mapStyle
               , mapboxApiAccessToken
               , ref: mkEffectFn1 $ mapRefHandler mapRef
+              , dragRotate: true
+              , touchZoomRotate: true
               })
               []
 

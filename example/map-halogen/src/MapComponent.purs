@@ -177,6 +177,8 @@ mapClass = R.component "Map" \this -> do
         , mapStyle: mapStyle
         , mapboxApiAccessToken: mapboxApiAccessToken
         , onLoad: pure unit
+        , dragRotate: true
+        , touchZoomRotate: true
         })
         []
 
