@@ -19,6 +19,7 @@
     "purescript-react-dom": "^6.1.0",
     "purescript-halogen": "v5.0.0",
     "purescript-aff-bus": "^4.0.0",
-    "purescript-aff": "^5.1.2"
+    "purescript-aff": "^5.1.2",
+    "purescript-affjax": "^10.1.0"
   }
 }
