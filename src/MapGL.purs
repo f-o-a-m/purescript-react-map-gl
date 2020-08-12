@@ -25,6 +25,7 @@ import Data.Nullable as Nullable
 import Effect (Effect)
 import Effect.Uncurried (EffectFn1)
 import Mapbox (Map)
+import Prim.Row (class Union, class Nub)
 import React as R
 import Record (disjointUnion)
 import WebMercator.LngLat (LngLat)
@@ -70,18 +71,25 @@ type MapPropsR r =
   | r
   )
 
-type MapProps = Record (ViewportR (MapPropsR ()))
+type MapProps r = Record (ViewportR (MapPropsR r))
 
-mkProps :: Viewport -> Record (MapPropsR ()) -> MapProps
+mkProps 
+  :: forall r. 
+     Union r (ViewportR ()) (ViewportR r)
+  => Nub (ViewportR (MapPropsR r)) (ViewportR (MapPropsR r))
+  => Viewport
+  -> Record (MapPropsR r)
+  -> MapProps r
 mkProps (Viewport vp) rest = disjointUnion rest vp
 
-foreign import mapGL :: R.ReactClass MapProps
-foreign import defaultProps :: MapProps
+foreign import mapGL :: R.ReactClass (MapProps (children :: R.Children))
+foreign import defaultProps :: MapProps (children :: R.Children)
 
 -- Default map component by `ReactMapGL` to render `MapboxGL`
 -- https://github.com/uber/react-map-gl/blob/master/docs/components/interactive-map.md
 foreign import data InteractiveMap :: Type
 
 foreign import getMapImpl :: Fn1 InteractiveMap (Nullable Map)
+
 getMap :: InteractiveMap -> Maybe Map
 getMap = Nullable.toMaybe <<< runFn1 getMapImpl
