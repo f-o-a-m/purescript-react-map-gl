@@ -19,6 +19,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.Query.EventSource as ES
+import Map (mapClass, MapMessages, Messages(..), Commands(..))
 import MapGL (Viewport)
 import Partial.Unsafe (unsafeCrashWith)
 import React as R
@@ -26,7 +27,6 @@ import ReactDOM (render) as RDOM
 import Web.HTML (window)
 import Web.HTML.HTMLElement as HTMLElement
 import Web.HTML.Window as Window
-import Map (mapClass, MapMessages, Messages(..), Commands(..))
 
 type Slot = H.Slot Query MapMessages
 

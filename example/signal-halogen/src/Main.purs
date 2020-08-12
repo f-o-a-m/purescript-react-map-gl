@@ -2,17 +2,17 @@ module Main where
 
 import Prelude
 
+import Container as Container
+import Data.Maybe (Maybe(..))
+import Data.Symbol (SProxy(..))
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
-import Data.Maybe (Maybe(..))
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.VDom.Driver (runUI)
 import Map as Map
-import Container as Container
-import Data.Symbol (SProxy(..))
 
 type State = {}
 

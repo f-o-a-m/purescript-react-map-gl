@@ -2,6 +2,7 @@ module Main where
 
 import Prelude
 
+import Data.Symbol (SProxy(..))
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
@@ -18,7 +19,6 @@ import Map as Map
 import MapGL (Viewport(..))
 import WebMercator.LngLat (LngLat)
 import WebMercator.LngLat as LngLat
-import Data.Symbol (SProxy(..))
 
 type State = {}
 

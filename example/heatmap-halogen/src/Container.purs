@@ -6,7 +6,6 @@ module Container
 
 import Prelude
 
-import Map as Map
 import Control.Lazy (fix)
 import Data.Foldable (for_)
 import Data.Int (toNumber)
@@ -21,6 +20,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query.EventSource as ES
+import Map as Map
 import Partial.Unsafe (unsafeCrashWith)
 import React as R
 import ReactDOM (render) as RDOM
