@@ -65,7 +65,6 @@ type MapPropsR r =
   , onClick :: OnClickMap
   , mapStyle :: String
   , mapboxApiAccessToken :: String
-  , children :: R.Children
   , dragRotate :: Boolean
   , touchZoomRotate :: Boolean
   | r
