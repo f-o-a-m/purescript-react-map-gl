@@ -10,7 +10,7 @@
   "dependencies": {
     "purescript-prelude": "^4.1.1",
     "purescript-react": "^7.0.0",
-    "purescript-web-mercator": "f-o-a-m/purescript-web-mercator#0.2.0",
+    "purescript-web-mercator": "f-o-a-m/purescript-web-mercator#0.3.0",
     "purescript-simple-json": "^7.0.0",
     "purescript-generics-rep": "^6.1.1"
   },
