@@ -4,7 +4,6 @@ import Prelude
 
 import Data.Int (toNumber)
 import Data.Maybe (fromJust)
-import Data.Newtype (un)
 import Effect (Effect)
 import Effect.Console (log)
 import Effect.Uncurried (mkEffectFn1)
@@ -12,7 +11,6 @@ import MapGL as MapGL
 import Partial.Unsafe (unsafePartial)
 import React as R
 import ReactDOM (render)
-import Record (disjointUnion)
 import Web.DOM (Element)
 import Web.DOM.NonElementParentNode (getElementById)
 import Web.HTML (window)
@@ -50,7 +48,7 @@ mapClass = R.component "Map" \this -> do
     }
     where
       render this = R.getState this <#> \{vp} -> R.createElement MapGL.mapGL
-        (un MapGL.Viewport vp `disjointUnion`
+        (MapGL.mkProps vp $
           { onViewportChange: mkEffectFn1 $ \newVp -> do
               log $ "Changed Viewport: " <> show newVp
               void $ R.writeState this {vp: newVp}
