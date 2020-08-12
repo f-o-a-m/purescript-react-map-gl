@@ -8,21 +8,18 @@
     "output"
   ],
   "dependencies": {
-    "purescript-prelude": "^4.0.0",
-    "purescript-console": "^4.0.0",
-    "purescript-react": "^6.1.0",
-    "purescript-generics-rep": "^6.0.0",
-    "purescript-record": "^1.0.0",
-    "purescript-simple-json": "^4.4.0",
+    "purescript-prelude": "^4.1.1",
+    "purescript-react": "^7.0.0",
     "purescript-web-mercator": "f-o-a-m/purescript-web-mercator#0.2.0",
-    "purescript-foreign-object": "^1.1.0"
+    "purescript-simple-json": "^7.0.0",
+    "purescript-generics-rep": "^6.1.1"
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0",
-    "purescript-react-dom": "^6.0.0",
-    "purescript-halogen": "^4.0.0",
+    "purescript-react-dom": "^6.1.0",
+    "purescript-halogen": "v5.0.0",
     "purescript-aff-bus": "^4.0.0",
-    "purescript-debug": "^4.0.0",
-    "purescript-affjax": "^7.0.0"
+    "purescript-aff": "^5.1.2",
+    "purescript-affjax": "^10.1.0"
   }
 }

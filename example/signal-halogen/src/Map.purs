@@ -1,27 +1,24 @@
-module MapComponent
-  ( MapQuery(..)
-  , Messages(..)
-  , MapProps
+module Map
+  ( Messages(..)
   , MapMessages(..)
   , Commands(..)
-  , mapComponent
+  , mapClass
   ) where
 
 import Prelude
 
 import Affjax as Affjax
 import Affjax.ResponseFormat as ResponseFormat
-import Affjax.StatusCode (StatusCode(..))
 import Control.Lazy (fix)
 import Data.Either (Either(..), either)
 import Data.Foldable (for_)
-import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (un)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Data.Tuple (snd)
 import Effect (Effect)
+import Effect.Class (liftEffect)
 import Effect.Aff (error, launchAff_)
 import Effect.Aff.Bus as Bus
 import Effect.Aff.Class (class MonadAff, liftAff)
@@ -30,92 +27,14 @@ import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Uncurried (mkEffectFn1)
 import GeoJson as GeoJson
-import Halogen (liftEffect)
-import Halogen as H
-import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
-import Halogen.HTML.Properties as HP
-import Halogen.Query.EventSource as ES
 import MapGL (ClickInfo, InteractiveMap, Viewport(..))
 import MapGL as MapGL
 import Mapbox as Mapbox
-import Partial.Unsafe (unsafeCrashWith)
 import React as R
-import ReactDOM (render) as RDOM
 import Record (disjointUnion)
 import Simple.JSON as JSON
 import Unsafe.Coerce (unsafeCoerce)
-import Web.HTML (window)
-import Web.HTML.HTMLElement as HTMLElement
-import Web.HTML.Window as Window
 
-
-type MapState = Maybe (Bus.BusW Commands)
-
-type MapProps = Unit
-
-data MapQuery a
-  = Initialize a
-  | HandleMessages Messages a
-  | ToggleHeatmap a
-
-data MapMessages
-  = OnClick ClickInfo
-
-mapComponent :: forall m. MonadAff m => H.Component HH.HTML MapQuery MapProps MapMessages m
-mapComponent =
-  H.lifecycleComponent
-    { initialState: const initialState
-    , render
-    , eval
-    , initializer: Just (H.action Initialize)
-    , finalizer: Nothing
-    , receiver: const Nothing
-    }
-  where
-
-  initialState :: MapState
-  initialState = Nothing
-
-  render :: MapState -> H.ComponentHTML MapQuery
-  render = const $
-    HH.div 
-      [ HP.class_ $ HH.ClassName "map-wrapper" ] 
-      [ HH.div [ HP.ref (H.RefLabel "map") ] []
-      , HH.button
-          [ HP.class_ $ HH.ClassName "btn-toggle"
-          , HE.onClick $ HE.input_ ToggleHeatmap
-          ]
-          [ HH.text "Toggle heatmap" ]
-      ]
-
-  eval :: MapQuery ~> H.ComponentDSL MapState MapQuery MapMessages m
-  eval = case _ of
-    Initialize next -> do
-      H.getHTMLElementRef (H.RefLabel "map") >>= case _ of
-        Nothing -> unsafeCrashWith "There must be an element with ref `map`"
-        Just el' -> do
-          win <- liftEffect window
-          width <- liftEffect $ toNumber <$> Window.innerWidth win
-          height <- liftEffect $ toNumber <$> Window.innerHeight win
-          messages <- liftAff Bus.make
-          liftEffect $ void $ RDOM.render (R.createLeafElement mapClass { messages: snd $ Bus.split messages, width, height}) (HTMLElement.toElement el')
-          H.subscribe $ H.eventSource (\emit -> launchAff_ $ fix \loop -> do
-              Bus.read messages >>= emit >>> liftEffect
-              loop
-            )
-            (Just <<< flip HandleMessages ES.Listening)
-      pure next
-    HandleMessages msg next -> do
-      case msg of
-        PublicMsg msg' -> H.raise msg'
-        IsInitialized bus -> H.put $ Just bus
-      pure next
-    ToggleHeatmap next -> do 
-      mbBus <- H.get
-      for_ mbBus \bus ->
-        liftAff $ Bus.write ToggleHeatmap' bus
-      pure next
 
 type MapRef = Ref (Maybe InteractiveMap)
 
@@ -125,6 +44,9 @@ data Commands
 data Messages
   = IsInitialized (Bus.BusW Commands)
   | PublicMsg MapMessages
+
+data MapMessages
+  = OnClick ClickInfo
 
 type Props =
   { messages :: Bus.BusW Messages
@@ -140,7 +62,7 @@ type State =
 
 mapClass :: R.ReactClass Props
 mapClass = R.component "Map" \this -> do
-  mapRef <- H.liftEffect $ Ref.new Nothing
+  mapRef <- liftEffect $ Ref.new Nothing
   command <- Bus.make
   { width, height, messages } <- R.getProps this
   launchAff_ $ Bus.write (IsInitialized $ snd $ Bus.split command) messages
@@ -165,7 +87,7 @@ mapClass = R.component "Map" \this -> do
   where
     componentWillUnmount :: R.ReactThis Props State -> MapRef -> R.ComponentWillUnmount
     componentWillUnmount this mapRef = do
-      H.liftEffect $ Ref.write Nothing mapRef
+      liftEffect $ Ref.write Nothing mapRef
       { command } <- R.getState this
       launchAff_ $ do
         props <- liftEffect $ R.getProps this
@@ -254,16 +176,12 @@ getMapData
   . MonadAff m 
   => m (Either AjaxError HeatmapDataFeatureCollection)
 getMapData = liftAff do
-  {body, status} <- Affjax.get ResponseFormat.string dataUrl
-  if (status /= StatusCode 200) 
-    then
-      pure $ Left $ HTTPStatus $ show status
-    else
-      case body of 
-        Left err ->
-          pure $ Left $ ResponseError $ Affjax.printResponseFormatError err
-        Right str -> 
-          pure $ either (Left <<< DecodingError <<< show) pure (JSON.readJSON str)
+  resp <- Affjax.get ResponseFormat.string dataUrl
+  case resp of
+    Left err ->
+      pure $ Left $ ResponseError $ Affjax.printError err
+    Right {body: str} -> 
+      pure $ either (Left <<< DecodingError <<< show) pure (JSON.readJSON str)
 
 dataUrl :: String 
 dataUrl = "https://gist.githubusercontent.com/kejace/1cb8711792da3e1fc309a40f77ea3266/raw/dd7f1e19d4a9056c15a898a22e04c3a2c7c7cbd2/signals2.geojson"

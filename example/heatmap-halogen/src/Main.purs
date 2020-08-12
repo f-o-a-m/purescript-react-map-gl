@@ -2,7 +2,10 @@ module Main where
 
 import Prelude
 
+import Container as Container
+import Data.Symbol (SProxy(..))
 import Effect (Effect)
+import Effect.Class (liftEffect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
 import Data.Maybe (Maybe(..))
@@ -10,40 +13,42 @@ import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.VDom.Driver (runUI)
-import MapComponent (MapMessages(..), MapQuery, mapComponent)
+import Map as Map
 
-type State = {}
+type State = Unit
 
-data Query a
-  = HandleMapUpdate MapMessages a
+data Action
+  = HandleMapUpdate Map.MapMessages
 
-data MapSlot = MapSlot
-derive instance eqMapSlot :: Eq MapSlot
-derive instance ordMapSlot :: Ord MapSlot
+type Slots f = 
+  ( map :: Container.Slot f Unit
+  )
+
+_map :: SProxy "map"
+_map = SProxy
 
 ui 
-  :: forall m
+  :: forall f m
   . MonadAff m
-  => H.Component HH.HTML Query Unit Void m
+  => H.Component HH.HTML f State Void m
 ui =
-  H.parentComponent
-    { initialState: const {}
+  H.mkComponent
+    { initialState: const unit
     , render
-    , eval
-    , receiver: const Nothing
+    , eval: H.mkEval $ 
+        H.defaultEval {handleAction = handleAction}
     }
   where
-    render :: State -> H.ParentHTML Query MapQuery MapSlot m
+    render :: State -> H.ComponentHTML Action (Slots f) m
     render _ =
       HH.div_
-        [ HH.slot MapSlot mapComponent unit $ Just <<< H.action <<< HandleMapUpdate
+        [ HH.slot _map unit Container.mapComponent unit (Just <<< HandleMapUpdate)
         ]
 
-    eval :: Query ~> H.ParentDSL State Query MapQuery MapSlot Void m
-    eval (HandleMapUpdate msg next) = do
+    handleAction :: forall o. Action -> H.HalogenM State Action (Slots f) o m Unit
+    handleAction (HandleMapUpdate msg) = do
       case msg of
-        OnClick info -> H.liftEffect $ log $ show info.lngLat
-      pure next
+        Map.OnClick info -> liftEffect $ log $ show info.lngLat
 
 main :: Effect Unit
 main = HA.runHalogenAff do
