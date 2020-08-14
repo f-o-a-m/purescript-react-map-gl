@@ -13,4 +13,4 @@ You can see some examples in `example` directory. It is also hosted [here](https
 
 ## npm requirements
 - react >= 16.0.3
-- react-map-gl >= 4.0.8
+- react-map-gl >= 5.2.0
