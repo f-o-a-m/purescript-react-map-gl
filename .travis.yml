@@ -7,10 +7,10 @@ install:
   - bower i
 script:
   - npm run build
-  - npm run example-map
-  - npm run example-map-halogen
-  - npm run example-heatmap-halogen
-  - npm run example-signal-halogen
+  - npm run example-map:build
+  - npm run example-map-halogen:build
+  - npm run example-heatmap-halogen:build
+  - npm run example-signal-halogen:build
 deploy:
   provider: pages
   skip_cleanup: true
