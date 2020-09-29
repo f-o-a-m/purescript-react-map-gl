@@ -11,3 +11,4 @@
 .vscode/
 package-lock.json
 example/*/*/*.js
+/.spago

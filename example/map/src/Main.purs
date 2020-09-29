@@ -32,9 +32,9 @@ mapClass = R.component "Map" \this -> do
   win <- window
   w <- Window.innerWidth win
   h <- Window.innerHeight win
-  pure 
+  pure
     { render: render this
-    , state: 
+    , state:
         { vp: MapGL.Viewport
             { width: toNumber w
             , height: toNumber h
@@ -58,7 +58,8 @@ mapClass = R.component "Map" \this -> do
           , mapboxApiAccessToken: mapboxApiAccessToken
           , onLoad: pure unit
           , dragRotate: true
-          , touchZoomRotate: true
+          , touchZoom: true
+          , touchRotate: true
           })
           []
 

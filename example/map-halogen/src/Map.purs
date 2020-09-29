@@ -1,5 +1,5 @@
 module Map
-  ( Messages(..) 
+  ( Messages(..)
   , Commands(..)
   , MapMessages(..)
   , mapClass
@@ -53,7 +53,7 @@ mapClass = R.component "Map" \this -> do
   command <- Bus.make
   { messages, width, height } <- R.getProps this
   launchAff_ $ Bus.write (IsInitialized $ snd $ Bus.split command) messages
-  pure 
+  pure
     { componentDidMount: componentDidMount this
     , componentWillUnmount: componentWillUnmount this
     , render: render this
@@ -102,7 +102,8 @@ mapClass = R.component "Map" \this -> do
         , mapboxApiAccessToken: mapboxApiAccessToken
         , onLoad: pure unit
         , dragRotate: true
-        , touchZoomRotate: true
+        , touchZoom: true
+        , touchRotate: true
         })
         []
 

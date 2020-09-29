@@ -1,23 +1,36 @@
 {
   "private": true,
   "dependencies": {
-    "react": "^16.3",
-    "react-map-gl": "^5.2.0"
+    "react": "^16.13",
+    "react-map-gl": "^5.2.8"
   },
   "devDependencies": {
-    "bower": "^1.8.2",
-    "purescript": "^0.13.0",
-    "pulp": "^15.0.0",
-    "purescript-psa": "^0.7.0",
-    "react-dom": "^16.3",
-    "create-react-class": "^15.6.3"
+    "browserify": "^16.5.2",
+    "create-react-class": "^15.6.3",
+    "purescript-psa": "^0.7.3",
+    "react-dom": "^16.13"
   },
   "scripts": {
-    "postinstall": "bower i",
-    "build": "pulp build",
-    "example-map": "pulp browserify --include example/map/src --to example/map/dist/map.js",
-    "example-map-halogen": "pulp browserify --include example/map-halogen/src --to example/map-halogen/dist/map-halogen.js",
-    "example-heatmap-halogen": "pulp browserify --include example/heatmap-halogen/src --to example/heatmap-halogen/dist/heatmap-halogen.js",
-    "example-signal-halogen": "pulp browserify --include example/signal-halogen/src --to example/signal-halogen/dist/signal-halogen.js"
+    "build": "spago build",
+    "//": "",
+    "example-map": "yarn example-map:bundle-app && yarn example-map:browserify",
+    "example-map:bundle-app": "spago --config example-map-spago.dhall bundle-app --to example/map/dist/map.js",
+    "example-map:browserify": "browserify example/map/dist/map.js -o example/map/dist/map.js",
+    "example-map:serve": "serve example/map/dist",
+    "//": "",
+    "example-map-halogen": "yarn example-map-halogen:bundle-app && yarn example-map-halogen:browserify",
+    "example-map-halogen:bundle-app": "spago --config example-map-halogen-spago.dhall bundle-app --to example/map-halogen/dist/map-halogen.js",
+    "example-map-halogen:browserify": "browserify example/map-halogen/dist/map-halogen.js -o example/map-halogen/dist/map-halogen.js",
+    "example-map-halogen:serve": "serve example/map-halogen/dist",
+    "//": "",
+    "example-heatmap-halogen": "yarn example-heatmap-halogen:bundle-app && yarn example-heatmap-halogen:browserify",
+    "example-heatmap-halogen:bundle-app": "spago --config example-heatmap-halogen-spago.dhall bundle-app --to example/heatmap-halogen/dist/heatmap-halogen.js",
+    "example-heatmap-halogen:browserify": "browserify example/heatmap-halogen/dist/heatmap-halogen.js -o example/heatmap-halogen/dist/heatmap-halogen.js",
+    "example-heatmap-halogen:serve": "serve example/heatmap-halogen/dist",
+    "//": "",
+    "example-signal-halogen": "yarn example-signal-halogen:bundle-app && yarn example-signal-halogen:browserify",
+    "example-signal-halogen:bundle-app": "spago --config example-signal-halogen-spago.dhall bundle-app --to example/signal-halogen/dist/signal-halogen.js",
+    "example-signal-halogen:browserify": "browserify example/signal-halogen/dist/signal-halogen.js -o example/signal-halogen/dist/signal-halogen.js",
+    "example-signal-halogen:serve": "serve example/signal-halogen/dist"
   }
 }
