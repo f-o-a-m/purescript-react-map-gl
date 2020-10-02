@@ -1,4 +1,4 @@
-module Map 
+module Map
   ( Messages(..)
   , MapMessages(..)
   , Commands(..)
@@ -17,11 +17,12 @@ import Data.Newtype (un)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Data.Tuple (snd)
+import Debug.Trace
 import Effect (Effect)
-import Effect.Class (liftEffect)
 import Effect.Aff (error, launchAff_)
 import Effect.Aff.Bus as Bus
 import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Class (liftEffect)
 import Effect.Class.Console as C
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
@@ -31,6 +32,7 @@ import MapGL (ClickInfo, InteractiveMap, Viewport(..))
 import MapGL as MapGL
 import Mapbox as Mapbox
 import React as R
+import React.Ref as R
 import Record (disjointUnion)
 import Simple.JSON as JSON
 import Unsafe.Coerce (unsafeCoerce)
@@ -65,7 +67,7 @@ mapClass = R.component "Map" \this -> do
   command <- Bus.make
   { width, height, messages } <- R.getProps this
   launchAff_ $ Bus.write (IsInitialized $ snd $ Bus.split command) messages
-  pure 
+  pure
     { componentDidMount: componentDidMount this mapRef
     , componentWillUnmount: componentWillUnmount this mapRef
     , render: render this mapRef
@@ -105,7 +107,7 @@ mapClass = R.component "Map" \this -> do
                 Mapbox.setLayerVisibilty map mapLayerId visible
         loop
 
-    mapOnLoadHandler 
+    mapOnLoadHandler
       :: MapRef
       -> Effect Unit
     mapOnLoadHandler mapRef = do
@@ -117,19 +119,24 @@ mapClass = R.component "Map" \this -> do
         -- initial heatmap layer
         Mapbox.addLayer map heatmapLayer
         -- load data
-        launchAff_ $ do 
-          result <- getMapData 
+        launchAff_ $ do
+          result <- getMapData
           case result of
-            Right mapData -> do 
+            Right mapData -> do
               -- update data of heatmap layer
               liftEffect $ Mapbox.setData map mapSourceId mapData
             Left err -> do
               liftEffect $ C.error $ "error while loading earthquake data: " <> show err
               pure unit
-  
-    mapRefHandler :: MapRef -> (Nullable R.ReactRef)-> Effect Unit
-    mapRefHandler mapRef ref =
-      Ref.write (Nullable.toMaybe $ unsafeCoerce ref) mapRef
+
+
+    instanceToInteractiveMap :: R.ReactInstance -> InteractiveMap
+    instanceToInteractiveMap = unsafeCoerce
+
+    mapRefHandler :: MapRef -> R.Ref R.ReactInstance -> Effect Unit
+    mapRefHandler mapRef ref = do
+      (content :: Maybe R.ReactInstance) <- R.getCurrentRef ref
+      Ref.write (map instanceToInteractiveMap content) mapRef
 
     render :: R.ReactThis Props State -> MapRef -> R.Render
     render this mapRef = do
@@ -137,16 +144,17 @@ mapClass = R.component "Map" \this -> do
       { viewport } <- R.getState this
       pure $ R.createElement MapGL.mapGL
               (un MapGL.Viewport viewport `disjointUnion`
-              { onViewportChange: mkEffectFn1 $ \vp -> 
+              { onViewportChange: mkEffectFn1 $ \vp ->
                   void $ R.setState this {viewport: vp}
               , onClick: mkEffectFn1 $ \info -> do
                   launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages
               , onLoad: mapOnLoadHandler mapRef
               , mapStyle
               , mapboxApiAccessToken
-              , ref: mkEffectFn1 $ mapRefHandler mapRef
+              , ref: R.fromEffect $ mapRefHandler mapRef
               , dragRotate: true
-              , touchZoomRotate: true
+              , touchZoom: true
+              , touchRotate: true
               })
               []
 
@@ -156,30 +164,30 @@ mapStyle = "mapbox://styles/mapbox/dark-v9"
 mapboxApiAccessToken :: String
 mapboxApiAccessToken = "pk.eyJ1IjoiYmxpbmt5MzcxMyIsImEiOiJjamVvcXZtbGYwMXgzMzNwN2JlNGhuMHduIn0.ue2IR6wHG8b9eUoSfPhTuQ"
 
-data AjaxError 
+data AjaxError
   = HTTPStatus String
   | ResponseError String
   | DecodingError String
 
-instance showAjaxError :: Show AjaxError where 
-  show = case _ of 
+instance showAjaxError :: Show AjaxError where
+  show = case _ of
     HTTPStatus s -> "HTTP status error" <> s
     ResponseError s -> "Response error" <> s
     DecodingError s -> "Decode JSON error" <> s
 
-getMapData 
-  :: forall m 
-  . MonadAff m 
+getMapData
+  :: forall m
+  . MonadAff m
   => m (Either AjaxError HeatmapDataFeatureCollection)
 getMapData = liftAff do
   resp <- Affjax.get ResponseFormat.string dataUrl
-  case resp of 
+  case resp of
     Left err ->
       pure $ Left $ ResponseError $ Affjax.printError err
-    Right {body: str} -> 
+    Right {body: str} ->
       pure $ either (Left <<< DecodingError <<< show) pure (JSON.readJSON str)
 
-dataUrl :: String 
+dataUrl :: String
 dataUrl = "https://docs.mapbox.com/mapbox-gl-js/assets/earthquakes.geojson"
 
 type HeatmapData = Mapbox.GeoJsonSource HeatmapDataFeatureCollection
@@ -191,7 +199,7 @@ type HeatmapDataProps =
   , mag :: Number
   , time :: Number
   , felt :: Nullable Number
-  , tsunami :: Number 
+  , tsunami :: Number
   }
 
 mapSourceId :: Mapbox.SourceId
@@ -200,7 +208,7 @@ mapSourceId = Mapbox.SourceId "heatmap-source"
 mapLayerId :: Mapbox.LayerId
 mapLayerId = Mapbox.LayerId "heatmap-layer"
 
-maxZoom :: Number 
+maxZoom :: Number
 maxZoom = 9.0
 
 -- Increase the heatmap weight based on a property.
@@ -306,7 +314,7 @@ heatmapLayer = Mapbox.Layer
   , source: mapSourceId
   , type: Mapbox.Heatmap
   , minzoom: 0.0
-  , maxzoom: maxZoom 
+  , maxzoom: maxZoom
   , paint
   , layout
   }

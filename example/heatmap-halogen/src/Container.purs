@@ -30,7 +30,7 @@ import Web.HTML.Window as Window
 
 type Slot f = H.Slot f Map.MapMessages
 
-type State = 
+type State =
   { bus :: Maybe (Bus.BusW Map.Commands)
   , showHeatmap :: Boolean
   }
@@ -54,29 +54,29 @@ mapComponent =
 
 render :: forall s m. State -> H.ComponentHTML Action s m
 render st =
-  HH.div 
-    [ HP.class_ $ HH.ClassName "map-wrapper" ] 
+  HH.div
+    [ HP.class_ $ HH.ClassName "map-wrapper" ]
     [ HH.div [ HP.ref (H.RefLabel "map") ] []
     , HH.button
       [ HP.class_ $ HH.ClassName "btn-toggle"
       , HE.onClick $ \_ -> Just $ ToggleHeatmap
       ]
       [ HH.text $
-          (if st.showHeatmap 
-              then "Hide" 
+          (if st.showHeatmap
+              then "Hide"
               else "Show")
-          <> " heatmap" 
+          <> " heatmap"
       ]
     ]
 
 eval :: forall f i s m. MonadAff m => H.HalogenQ f Action i ~> H.HalogenM State Action s Map.MapMessages m
-eval = H.mkEval $ H.defaultEval 
+eval = H.mkEval $ H.defaultEval
   { handleAction = handleAction
   , initialize = Just Initialize
   }
   where
 
-    
+
     handleAction :: Action -> H.HalogenM State Action s Map.MapMessages m Unit
     handleAction = case _ of
       Initialize -> do
@@ -99,11 +99,11 @@ eval = H.mkEval $ H.defaultEval
         case msg of
           Map.PublicMsg msg' -> H.raise msg'
           Map.IsInitialized bus -> H.modify_ _{bus = Just bus}
-      ToggleHeatmap -> do 
+      ToggleHeatmap -> do
         {bus: mbBus, showHeatmap} <- H.get
         let visible = not showHeatmap
         for_ mbBus \bus ->
           liftAff $ Bus.write (Map.SetHeatmapVisibilty visible) bus
         H.modify_ _{showHeatmap = visible}
 
-  
+

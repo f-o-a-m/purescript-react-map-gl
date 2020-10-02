@@ -67,14 +67,15 @@ type MapPropsR r =
   , mapStyle :: String
   , mapboxApiAccessToken :: String
   , dragRotate :: Boolean
-  , touchZoomRotate :: Boolean
+  , touchZoom :: Boolean
+  , touchRotate :: Boolean
   | r
   )
 
 type MapProps r = Record (ViewportR (MapPropsR r))
 
-mkProps 
-  :: forall r. 
+mkProps
+  :: forall r.
      Union r (ViewportR ()) (ViewportR r)
   => Nub (ViewportR (MapPropsR r)) (ViewportR (MapPropsR r))
   => Viewport
