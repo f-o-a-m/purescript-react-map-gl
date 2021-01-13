@@ -12,6 +12,8 @@ script:
   - npm run example-map-halogen:build
   - npm run example-heatmap-halogen:build
   - npm run example-signal-halogen:build
+  - npm run example-signal-halogen:bundle-app
+  - npm run example-signal-halogen:browserify
 deploy:
   provider: pages
   skip_cleanup: true
