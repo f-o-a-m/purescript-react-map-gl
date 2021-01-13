@@ -20,6 +20,7 @@ module Mapbox
   , Layout(..)
   , LayerVisibility(..)
   , HeatmapLayoutProperties
+  , FillExtrusionLayoutProperties
   , getSource
   , addSource
   , addLayer
@@ -123,15 +124,18 @@ instance writeForeignLayerVisibility :: WriteForeign LayerVisibility where
 -- `layout` properties of a `heatmap-layer`
 -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#layers-heatmap
 type HeatmapLayoutProperties = { visibility :: LayerVisibility }
+type FillExtrusionLayoutProperties = { visibility :: LayerVisibility }
 
 -- Object to describe layout properties of any kind of layer
 -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#layer-layout
 -- Note: Currently we do support layout of `heatmap-layer` only
 data Layout = HeatmapLayout HeatmapLayoutProperties
+            | FillExtrusionLayout FillExtrusionLayoutProperties
 
 instance writeForeignLayout :: WriteForeign Layout where
   writeImpl = case _ of
     HeatmapLayout props -> writeImpl props
+    FillExtrusionLayout props -> writeImpl props
 
 -- A Mapbox' style layer
 newtype Layer = Layer 
@@ -145,7 +149,7 @@ newtype Layer = Layer
   }
 
 instance writeForeignLayer :: WriteForeign Layer where
-  writeImpl (Layer l)= writeImpl l
+  writeImpl (Layer l) = writeImpl l
 
 -- Id of a Mapbox' layer
 newtype LayerId = LayerId String
