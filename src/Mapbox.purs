@@ -9,6 +9,7 @@ module Mapbox
   ( Map
   , Source(..)
   , SourceId(..)
+  , SourceType(..)
   , Layer(..)
   , LayerId(..)
   , LayerType(..)
@@ -69,6 +70,10 @@ mkGeoJsonSource d =
 -- Id of a source in Mapbox' style
 newtype SourceId = SourceId String
 derive newtype instance writeForeignSourceId :: WriteForeign SourceId
+
+-- Id of a source-type in Mapbox' style
+newtype SourceType = SourceType String
+derive newtype instance writeForeignSourceType :: WriteForeign SourceType
 
 -- Layer types
 -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#layer-type
@@ -141,6 +146,7 @@ instance writeForeignLayout :: WriteForeign Layout where
 newtype Layer = Layer 
   { id :: LayerId
   , source :: SourceId 
+  --, "source-type" :: SourceType
   , type :: LayerType
   , minzoom :: Number
   , maxzoom :: Number
