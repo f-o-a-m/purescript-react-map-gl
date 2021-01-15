@@ -27,9 +27,8 @@ module Mapbox
   , addSource
   , addLayer
   , setData
-  , mkPaintPropertyA
-  , mkPaintPropertyV
   , mkGeoJsonSource
+  , mkPaintProperty
   , setLayerVisibilty
   ) where
 
@@ -105,29 +104,18 @@ instance writeForeignLayerType :: WriteForeign LayerType where
 
 -- `paint` property
 -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#layer-paint
-data PaintProperty
-  = PPArray String (Array StyleExpression)
-  | PPValue String StyleExpression
+type PaintProperty = Tuple String StyleExpression
 
-instance writeForeignPaintProperty :: WriteForeign PaintProperty where
-  writeImpl (PPArray s arr) = writeImpl $ show s <> " : " <> (unsafeCoerce $ writeImpl arr)
-  writeImpl (PPValue s se) = writeImpl $ show s <> " : " <> unsafeCoerce se
-
-mkPaintPropertyA :: String -> (Array StyleExpression) -> PaintProperty
-mkPaintPropertyA = PPArray
-
-mkPaintPropertyV :: String -> StyleExpression -> PaintProperty
-mkPaintPropertyV = PPValue
+mkPaintProperty :: String -> StyleExpression -> PaintProperty
+mkPaintProperty = Tuple
 
 -- Object to describe paint properties
 -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#layer-paint
 -- It's a hash map, where its key is the `expression-name`
 -- and the value a list of expressions
-newtype Paint
-  = Paint (Array PaintProperty)
-
+newtype Paint = Paint (Array PaintProperty)
 instance writeForeignPaint :: WriteForeign Paint where
-  writeImpl (Paint arr) = writeImpl arr
+  writeImpl (Paint arr) = writeImpl $ FO.fromFoldable arr
 
 -- `layout` property to show or hide a layer
 -- Example https://docs.mapbox.com/mapbox-gl-js/style-spec/#layout-heatmap-visibility
@@ -177,8 +165,10 @@ type LayerR r
 
 derive newtype instance writeForeignLayer :: (WriteForeign (Record (LayerR r))) => WriteForeign (Layer r)
 
-type FillExtrusionLayerR
-  = ( "source-layer" :: String )
+type FillExtrusionLayerR =
+  ( "source-layer" :: String
+  , "filter" :: StyleExpression
+  )
 
 type HeatMapLayer
   = Layer ()

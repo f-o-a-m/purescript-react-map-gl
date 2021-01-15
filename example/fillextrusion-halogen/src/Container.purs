@@ -50,7 +50,7 @@ mapComponent =
   where
 
   initialState :: State
-  initialState = {bus: Nothing, showFillExtrusion: false}
+  initialState = {bus: Nothing, showFillExtrusion: true}
 
 render :: forall s m. State -> H.ComponentHTML Action s m
 render st =

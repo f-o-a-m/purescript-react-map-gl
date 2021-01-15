@@ -5,6 +5,7 @@ module Map
   , mapClass
   ) where
 
+import Effect.Class.Console
 import Prelude
 
 import Control.Lazy (fix)
@@ -19,15 +20,15 @@ import Effect.Class (liftEffect)
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Uncurried (mkEffectFn1)
+import Foreign (Foreign)
 import MapGL (ClickInfo, InteractiveMap, Viewport(..))
 import MapGL as MapGL
 import Mapbox as Mapbox
 import React (ComponentDidMount, ComponentWillUnmount, ReactClass, ReactThis, Render, component, createElement, getProps, getState, setState) as R
 import React.Ref (ReactInstance, Ref, fromEffect, getCurrentRef) as R
 import Record (disjointUnion)
+import Simple.JSON (class WriteForeign, writeImpl)
 import Unsafe.Coerce (unsafeCoerce)
-import Effect.Class.Console
-import Foreign (Foreign)
 
 data MapMessages
   = OnClick ClickInfo
@@ -93,7 +94,7 @@ mapClass = R.component "Map" \this -> do
           SetFillExtrusionVisibilty visible -> liftEffect $ do
             iMap <- Ref.read mapRef
             for_ (MapGL.getMap =<< iMap) \map ->
-              -- make sure a `fillextrusion-layer` is already available at this point
+              -- make sure a `mapLayerId` is already available at this point
               when (isJust $ Mapbox.getSource map mapSourceId) $
                 Mapbox.setLayerVisibilty map mapLayerId visible
         loop
@@ -107,8 +108,7 @@ mapClass = R.component "Map" \this -> do
         -- initial fillextrusion layer
         Mapbox.addLayer map fillExtrusionLayer
 
-      log $ unsafeCoerce fillExtrusionLayer
-
+      log $ unsafeCoerce $ writeImpl fillExtrusionLayer
 
     instanceToInteractiveMap :: R.ReactInstance -> InteractiveMap
     instanceToInteractiveMap = unsafeCoerce
@@ -139,7 +139,7 @@ mapClass = R.component "Map" \this -> do
               []
 
 mapStyle :: String
-mapStyle = "mapbox://styles/mapbox/dark-v9"
+mapStyle = "mapbox://styles/mapbox/light-v10"
 
 mapboxApiAccessToken :: String
 mapboxApiAccessToken = "pk.eyJ1IjoiYmxpbmt5MzcxMyIsImEiOiJjamVvcXZtbGYwMXgzMzNwN2JlNGhuMHduIn0.ue2IR6wHG8b9eUoSfPhTuQ"
@@ -162,13 +162,10 @@ mapSourceId :: Mapbox.SourceId
 mapSourceId = Mapbox.SourceId "composite"
 
 mapLayerId :: Mapbox.LayerId
-mapLayerId = Mapbox.LayerId "source-layer"
-
-maxZoom :: Number
-maxZoom = 9.0
+mapLayerId = Mapbox.LayerId "buildinglayer"
 
 fillExtrusionHeight :: Mapbox.PaintProperty
-fillExtrusionHeight = Mapbox.mkPaintPropertyA "fill-extrusion-height"
+fillExtrusionHeight = Mapbox.mkPaintProperty "fill-extrusion-height" $ Mapbox.SEArray
   [ Mapbox.SEString "interpolate"
   , Mapbox.SEArray [Mapbox.SEString "linear"]
   , Mapbox.SEArray [Mapbox.SEString "zoom"]
@@ -179,7 +176,7 @@ fillExtrusionHeight = Mapbox.mkPaintPropertyA "fill-extrusion-height"
   ]
 
 fillExtrusionBase :: Mapbox.PaintProperty
-fillExtrusionBase = Mapbox.mkPaintPropertyA "fill-extrusion-base"
+fillExtrusionBase = Mapbox.mkPaintProperty "fill-extrusion-base" $ Mapbox.SEArray
   [ Mapbox.SEString "interpolate"
   , Mapbox.SEArray [Mapbox.SEString "linear"]
   , Mapbox.SEArray [Mapbox.SEString "zoom"]
@@ -190,10 +187,10 @@ fillExtrusionBase = Mapbox.mkPaintPropertyA "fill-extrusion-base"
   ]
 
 fillExtrusionColor :: Mapbox.PaintProperty
-fillExtrusionColor = Mapbox.mkPaintPropertyV "fill-extrusion-color" (Mapbox.SEString "rgb(123,123,123)")
+fillExtrusionColor = Mapbox.mkPaintProperty "fill-extrusion-color" $ Mapbox.SEString "#aaa"
 
 fillExtrusionOpacity :: Mapbox.PaintProperty
-fillExtrusionOpacity = Mapbox.mkPaintPropertyV "fill-extrusion-opacity" (Mapbox.SENumber 0.6)
+fillExtrusionOpacity = Mapbox.mkPaintProperty "fill-extrusion-opacity" $ Mapbox.SENumber 0.6
 
 paint :: Mapbox.Paint
 paint = Mapbox.Paint
@@ -204,16 +201,17 @@ paint = Mapbox.Paint
   ]
 
 layout :: Mapbox.Layout
-layout = Mapbox.FillExtrusionLayout { visibility: Mapbox.LayerNone }
+layout = Mapbox.FillExtrusionLayout { visibility: Mapbox.LayerVisible }
 
 fillExtrusionLayer :: Mapbox.FillExtrusionLayer
 fillExtrusionLayer = Mapbox.Layer
   { id: mapLayerId
   , source: mapSourceId
   , type: Mapbox.FillExtrusion
-  , "source-layer": "buildings"
-  , minzoom: 15.0
-  , maxzoom: maxZoom
+  , "source-layer": "building"
+  , filter: Mapbox.SEArray [Mapbox.SEString "==", Mapbox.SEString "extrude", Mapbox.SEString "true"]
+  , minzoom: 10.0
+  , maxzoom: 24.0
   , paint
   , layout
   }
