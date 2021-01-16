@@ -20,6 +20,7 @@ module Mapbox
   , Layout(..)
   , LayerVisibility(..)
   , FillExtrusionLayer
+  , HeatMapLayer
   , FillExtrusionLayerR
   , HeatmapLayoutProperties
   , FillExtrusionLayoutProperties
@@ -44,7 +45,6 @@ import Foreign (Foreign)
 import Foreign.Object as FO
 import GeoJson (GeoJson)
 import Simple.JSON (class WriteForeign, writeImpl)
-import Unsafe.Coerce
 
 -- `Map` object to have full access to underlaying `MapboxGL`s API
 -- https://docs.mapbox.com/mapbox-gl-js/api/#map#addsource
@@ -104,7 +104,8 @@ instance writeForeignLayerType :: WriteForeign LayerType where
 
 -- `paint` property
 -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#layer-paint
-type PaintProperty = Tuple String StyleExpression
+type PaintProperty
+  = Tuple String StyleExpression
 
 mkPaintProperty :: String -> StyleExpression -> PaintProperty
 mkPaintProperty = Tuple
@@ -113,7 +114,9 @@ mkPaintProperty = Tuple
 -- https://docs.mapbox.com/mapbox-gl-js/style-spec/#layer-paint
 -- It's a hash map, where its key is the `expression-name`
 -- and the value a list of expressions
-newtype Paint = Paint (Array PaintProperty)
+newtype Paint
+  = Paint (Array PaintProperty)
+
 instance writeForeignPaint :: WriteForeign Paint where
   writeImpl (Paint arr) = writeImpl $ FO.fromFoldable arr
 
@@ -165,10 +168,10 @@ type LayerR r
 
 derive newtype instance writeForeignLayer :: (WriteForeign (Record (LayerR r))) => WriteForeign (Layer r)
 
-type FillExtrusionLayerR =
-  ( "source-layer" :: String
-  , "filter" :: StyleExpression
-  )
+type FillExtrusionLayerR
+  = ( "source-layer" :: String
+    , "filter" :: StyleExpression
+    )
 
 type HeatMapLayer
   = Layer ()

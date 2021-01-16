@@ -1,7 +1,6 @@
 module Main where
 
 import Prelude
-
 import Data.Symbol (SProxy(..))
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
@@ -20,32 +19,33 @@ import MapGL (Viewport(..))
 import WebMercator.LngLat (LngLat)
 import WebMercator.LngLat as LngLat
 
-type State = {}
+type State
+  = {}
 
 data Action
   = GoTo LngLat
   | HandleMapUpdate Map.MapMessages
 
-type Slots = 
-  ( map :: Container.Slot Unit
-  )
+type Slots
+  = ( map :: Container.Slot Unit
+    )
 
 _map :: SProxy "map"
 _map = SProxy
 
-ui 
-  :: forall f m
-  . MonadAff m
-  => H.Component HH.HTML f Unit Void m
+ui ::
+  forall f m.
+  MonadAff m =>
+  H.Component HH.HTML f Unit Void m
 ui =
   H.mkComponent
     { initialState: const initialState
     , render
-    , eval: H.mkEval $ 
-        H.defaultEval {handleAction = handleAction}
+    , eval:
+        H.mkEval
+          $ H.defaultEval { handleAction = handleAction }
     }
   where
-
   initialState :: State
   initialState = {}
 
@@ -64,14 +64,17 @@ handleAction :: forall o m. MonadAff m => Action -> H.HalogenM State Action Slot
 handleAction (GoTo lnglat) = do
   mvp <- H.query _map unit $ H.request Container.AskViewport
   for_ mvp \(Viewport vp) -> do
-    let nextVp = Viewport $ vp { latitude = LngLat.lat lnglat, longitude = LngLat.lng lnglat, zoom = 12.0}
+    let
+      nextVp = Viewport $ vp { latitude = LngLat.lat lnglat, longitude = LngLat.lng lnglat, zoom = 12.0 }
     H.query _map unit $ H.tell $ Container.SetViewport nextVp
+
 handleAction (HandleMapUpdate msg) = do
   case msg of
     Map.OnViewportChange vp -> H.liftEffect $ log $ show vp
     Map.OnClick info -> H.liftEffect $ log $ show info.lngLat
 
 main :: Effect Unit
-main = HA.runHalogenAff do
-  body <- HA.awaitBody
-  runUI ui unit body
+main =
+  HA.runHalogenAff do
+    body <- HA.awaitBody
+    runUI ui unit body

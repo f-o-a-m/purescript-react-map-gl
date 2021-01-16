@@ -5,7 +5,6 @@ module Container
   ) where
 
 import Prelude
-
 import Control.Lazy (fix)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
@@ -28,10 +27,11 @@ import Web.HTML (window)
 import Web.HTML.HTMLElement as HTMLElement
 import Web.HTML.Window as Window
 
-type Slot = H.Slot Query MapMessages
+type Slot
+  = H.Slot Query MapMessages
 
-
-type State = Maybe (Bus.BusW Commands)
+type State
+  = Maybe (Bus.BusW Commands)
 
 data Query a
   = SetViewport Viewport a
@@ -53,56 +53,65 @@ render :: forall s m. State -> H.ComponentHTML Action s m
 render = const $ HH.div [ HP.ref (H.RefLabel "map") ] []
 
 eval :: forall i s m. MonadAff m => H.HalogenQ Query Action i ~> H.HalogenM State Action s MapMessages m
-eval = H.mkEval $ H.defaultEval 
-  { handleQuery = handleQuery
-  , handleAction = handleAction
-  , initialize = Just Initialize
-  }
+eval =
+  H.mkEval
+    $ H.defaultEval
+        { handleQuery = handleQuery
+        , handleAction = handleAction
+        , initialize = Just Initialize
+        }
   where
+  handleQuery :: forall a. Query a -> H.HalogenM State Action s MapMessages m (Maybe a)
+  handleQuery = case _ of
+    SetViewport vp next -> do
+      mbBus <- H.get
+      case mbBus of
+        Nothing -> unsafeCrashWith "At this point bus must be in state from eval SetViewport"
+        Just bus -> do
+          liftAff $ Bus.write (SetViewport' vp) bus
+      pure $ Just next
+    AskViewport reply -> do
+      mbBus <- H.get
+      case mbBus of
+        Nothing -> unsafeCrashWith "At this point bus must be in state from eval AskViewport"
+        Just bus -> do
+          var <- liftAff AVar.empty
+          liftAff $ Bus.write (AskViewport' var) bus
+          vp <- liftAff $ AVar.take var
+          pure $ Just $ reply vp
 
-    handleQuery :: forall a. Query a -> H.HalogenM State Action s MapMessages m (Maybe a)
-    handleQuery = case _ of
-      SetViewport vp next -> do
-        mbBus <- H.get
-        case mbBus of
-          Nothing -> unsafeCrashWith "At this point bus must be in state from eval SetViewport"
-          Just bus -> do
-            liftAff $ Bus.write (SetViewport' vp) bus
-        pure $ Just next
-      AskViewport reply -> do
-        mbBus <- H.get
-        case mbBus of
-          Nothing -> unsafeCrashWith "At this point bus must be in state from eval AskViewport"
-          Just bus -> do
-            var <- liftAff AVar.empty
-            liftAff $ Bus.write (AskViewport' var) bus
-            vp <- liftAff $ AVar.take var
-            pure $ Just $ reply vp
-
-    handleAction :: Action -> H.HalogenM State Action s MapMessages m Unit
-    handleAction = case _ of
-      Initialize -> do
-        H.getHTMLElementRef (H.RefLabel "map") >>= case _ of
-          Nothing -> unsafeCrashWith "There must be an element with ref `map`"
-          Just el' -> do
-            win <- liftEffect window
-            width <- liftEffect $ toNumber <$> Window.innerWidth win
-            height <- liftEffect $ toNumber <$> Window.innerHeight win
-            messages <- liftAff Bus.make
-            let (Tuple messagesR messagesW) = Bus.split messages
-            liftEffect $ void $ RDOM.render 
-              ( R.createLeafElement mapClass 
-                  { messages: messagesW
-                  , width, height
-                  }
-              ) (HTMLElement.toElement el')
-            void $ H.subscribe $ ES.effectEventSource (\emitter -> do
-              launchAff_ $ fix \loop -> do
-                Bus.read messagesR >>= \a -> liftEffect $ ES.emit emitter (HandleMessages a)
-                loop
-              pure mempty
-              )
-      HandleMessages msg -> do
-        case msg of
-          IsInitialized bus -> H.put $ Just bus
-          PublicMsg msg' -> H.raise msg'
+  handleAction :: Action -> H.HalogenM State Action s MapMessages m Unit
+  handleAction = case _ of
+    Initialize -> do
+      H.getHTMLElementRef (H.RefLabel "map")
+        >>= case _ of
+            Nothing -> unsafeCrashWith "There must be an element with ref `map`"
+            Just el' -> do
+              win <- liftEffect window
+              width <- liftEffect $ toNumber <$> Window.innerWidth win
+              height <- liftEffect $ toNumber <$> Window.innerHeight win
+              messages <- liftAff Bus.make
+              let
+                (Tuple messagesR messagesW) = Bus.split messages
+              liftEffect $ void
+                $ RDOM.render
+                    ( R.createLeafElement mapClass
+                        { messages: messagesW
+                        , width
+                        , height
+                        }
+                    )
+                    (HTMLElement.toElement el')
+              void $ H.subscribe
+                $ ES.effectEventSource
+                    ( \emitter -> do
+                        launchAff_
+                          $ fix \loop -> do
+                              Bus.read messagesR >>= \a -> liftEffect $ ES.emit emitter (HandleMessages a)
+                              loop
+                        pure mempty
+                    )
+    HandleMessages msg -> do
+      case msg of
+        IsInitialized bus -> H.put $ Just bus
+        PublicMsg msg' -> H.raise msg'
