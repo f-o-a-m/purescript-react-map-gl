@@ -15,6 +15,7 @@
       , "partial"
       , "integers"
       , "halogen"
+      , "tailrec"
       ]
 , packages = (./spago.dhall).packages
 , sources =

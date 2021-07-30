@@ -11,7 +11,7 @@ import Data.Foldable (for_)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Effect.Aff (launchAff_)
+import Effect.Aff (forkAff)
 import Effect.Aff.Bus as Bus
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Halogen (liftEffect)
@@ -27,6 +27,7 @@ import ReactDOM (render) as RDOM
 import Web.HTML (window)
 import Web.HTML.HTMLElement as HTMLElement
 import Web.HTML.Window as Window
+import Control.Monad.Rec.Class (forever)
 
 type Slot f = H.Slot f Map.MapMessages
 
@@ -89,10 +90,12 @@ eval = H.mkEval $ H.defaultEval
             liftEffect $ void $ RDOM.render (R.createLeafElement Map.mapClass { messages: messagesW, width, height}) (HTMLElement.toElement el')
             { emitter, listener } <- H.liftEffect HS.create
             void $ H.subscribe emitter
-            -- H.liftEffect $ HS.notify listener $ do
-            --   launchAff_ $ fix \loop -> do
-            --     Bus.read messagesR >>= \a -> (HandleMessages a)
-            --     loop
+            void
+              $ H.liftAff
+              $ forkAff
+              $ forever do
+                Bus.read messagesR >>= (\a -> H.liftEffect $ HS.notify listener (HandleMessages a))
+
       HandleMessages msg -> do
         case msg of
           Map.PublicMsg msg' -> H.raise msg'

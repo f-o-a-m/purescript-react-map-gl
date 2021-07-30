@@ -15,6 +15,7 @@
       , "partial"
       , "integers"
       , "halogen"
+      , "tailrec"
       ]
 , packages = (./spago.dhall).packages
 , sources = (./spago.dhall).sources # [ "example/signal-halogen/src/**/*.purs" ]

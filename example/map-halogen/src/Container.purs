@@ -10,7 +10,7 @@ import Control.Lazy (fix)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Effect.Aff (launchAff_)
+import Effect.Aff (launchAff_, forkAff)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Bus as Bus
 import Effect.Aff.Class (class MonadAff, liftAff)
@@ -27,6 +27,7 @@ import ReactDOM (render) as RDOM
 import Web.HTML (window)
 import Web.HTML.HTMLElement as HTMLElement
 import Web.HTML.Window as Window
+import Control.Monad.Rec.Class (forever)
 
 type Slot = H.Slot Query MapMessages
 
@@ -94,19 +95,14 @@ eval = H.mkEval $ H.defaultEval
                   , width, height
                   }
               ) (HTMLElement.toElement el')
-            -- void $ H.subscribe $ ES.effectEventSource (\emitter -> do
-            --   launchAff_ $ fix \loop -> do
-            --     Bus.read messagesR >>= \a -> liftEffect $ ES.emit emitter (HandleMessages a)
-            --     loop
-            --   pure mempty
-            --   )
             { emitter, listener } <- H.liftEffect HS.create
             void $ H.subscribe emitter
-            -- H.liftEffect $ HS.notify listener $ do
-            --   launchAff_ $ fix \loop -> do
-            --     Bus.read messagesR >>= \a -> (HandleMessages a)
-            --     loop
-            
+            void
+              $ H.liftAff
+              $ forkAff
+              $ forever do
+                Bus.read messagesR >>= (\a -> H.liftEffect $ HS.notify listener (HandleMessages a))
+
       HandleMessages msg -> do
         case msg of
           IsInitialized bus -> H.put $ Just bus
