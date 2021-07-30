@@ -3,7 +3,6 @@ module Main where
 import Prelude
 
 import Container as Container
-import Data.Symbol (SProxy(..))
 import Effect (Effect)
 import Effect.Class (liftEffect)
 import Effect.Aff.Class (class MonadAff)
@@ -14,6 +13,7 @@ import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.VDom.Driver (runUI)
 import Map as Map
+import Type.Proxy
 
 type State = Unit
 
@@ -24,13 +24,13 @@ type Slots f =
   ( map :: Container.Slot f Unit
   )
 
-_map :: SProxy "map"
-_map = SProxy
+_map :: Proxy "map"
+_map = Proxy
 
 ui 
   :: forall f m
   . MonadAff m
-  => H.Component HH.HTML f State Void m
+  => H.Component f State Void m
 ui =
   H.mkComponent
     { initialState: const unit
@@ -42,7 +42,7 @@ ui =
     render :: State -> H.ComponentHTML Action (Slots f) m
     render _ =
       HH.div_
-        [ HH.slot _map unit Container.mapComponent unit (Just <<< HandleMapUpdate)
+        [ HH.slot _map unit Container.mapComponent unit HandleMapUpdate
         ]
 
     handleAction :: forall o. Action -> H.HalogenM State Action (Slots f) o m Unit

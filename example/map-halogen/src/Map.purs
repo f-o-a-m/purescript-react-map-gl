@@ -21,8 +21,6 @@ import MapGL as MapGL
 import React as R
 import Record (disjointUnion)
 
-
-
 data MapMessages
   = OnViewportChange Viewport
   | OnClick ClickInfo
@@ -106,7 +104,6 @@ mapClass = R.component "Map" \this -> do
         , touchRotate: true
         })
         []
-
 
 mapStyle :: String
 mapStyle = "mapbox://styles/mapbox/dark-v9"

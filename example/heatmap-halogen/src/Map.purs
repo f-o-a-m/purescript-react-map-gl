@@ -17,7 +17,6 @@ import Data.Newtype (un)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Data.Tuple (snd)
-import Debug.Trace
 import Effect (Effect)
 import Effect.Aff (error, launchAff_)
 import Effect.Aff.Bus as Bus

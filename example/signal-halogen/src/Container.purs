@@ -18,7 +18,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Halogen.Query.EventSource as ES
+import Halogen.Subscription as HS
 import Map as Map
 import Partial.Unsafe (unsafeCrashWith)
 import React as R
@@ -36,7 +36,7 @@ data Action
   | HandleMessages Map.Messages
   | ToggleHeatmap
 
-mapComponent :: forall f i m. MonadAff m => H.Component HH.HTML f i Map.MapMessages m
+mapComponent :: forall f i m. MonadAff m => H.Component f i Map.MapMessages m
 mapComponent =
   H.mkComponent
     { initialState: const Nothing
@@ -52,7 +52,7 @@ mapComponent =
       [ HH.div [ HP.ref (H.RefLabel "map") ] []
       , HH.button
           [ HP.class_ $ HH.ClassName "btn-toggle"
-          , HE.onClick $ \_ -> Just ToggleHeatmap
+          , HE.onClick $ \_ -> ToggleHeatmap
           ]
           [ HH.text "Toggle heatmap" ]
       ]
@@ -75,12 +75,12 @@ eval = H.mkEval $ H.defaultEval
             messages <- liftAff Bus.make
             let (Tuple messagesR messagesW) = Bus.split messages
             liftEffect $ void $ RDOM.render (R.createLeafElement Map.mapClass { messages: messagesW, width, height}) (HTMLElement.toElement el')
-            void $ H.subscribe $ ES.effectEventSource (\emitter -> do
-              launchAff_ $ fix \loop -> do
-                Bus.read messagesR >>= \a -> liftEffect $ ES.emit emitter (HandleMessages a)
-                loop
-              pure mempty
-              )
+            { emitter, listener } <- H.liftEffect HS.create
+            void $ H.subscribe emitter
+            -- H.liftEffect $ HS.notify listener $ do
+            --   launchAff_ $ fix \loop -> do
+            --     Bus.read messagesR >>= \a -> (HandleMessages a)
+            --     loop
       HandleMessages msg  -> do
         case msg of
           Map.PublicMsg msg' -> H.raise msg'
