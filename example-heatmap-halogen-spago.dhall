@@ -1,5 +1,23 @@
-{ name = "example-heatmap-halogen"
-, dependencies = (./spago.dhall).dependencies
+{ name = "example-map-halogen"
+, dependencies =
+      (./spago.dhall).dependencies
+    # [ "either"
+      , "refs"
+      , "unsafe-coerce"
+      , "affjax"
+      , "control"
+      , "foldable-traversable"
+      , "halogen-subscriptions"
+      , "aff"
+      , "aff-bus"
+      , "web-html"
+      , "react-dom"
+      , "partial"
+      , "integers"
+      , "halogen"
+      , "tailrec"
+      ]
 , packages = (./spago.dhall).packages
-, sources = (./spago.dhall).sources # ["example/heatmap-halogen/src/**/*.purs"]
+, sources =
+    (./spago.dhall).sources # [ "example/heatmap-halogen/src/**/*.purs" ]
 }
