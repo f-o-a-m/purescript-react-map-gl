@@ -1,10 +1,8 @@
-{ name = "example-map-halogen"
+{ name = "example-fillextrusion-halogen"
 , dependencies =
       (./spago.dhall).dependencies
-    # [ "either"
-      , "refs"
+    # [ "refs"
       , "unsafe-coerce"
-      , "affjax"
       , "control"
       , "foldable-traversable"
       , "halogen-subscriptions"
@@ -19,5 +17,5 @@
       ]
 , packages = (./spago.dhall).packages
 , sources =
-    (./spago.dhall).sources # [ "example/heatmap-halogen/src/**/*.purs" ]
+    (./spago.dhall).sources # [ "example/fillextrusion-halogen/src/**/*.purs" ]
 }

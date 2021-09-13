@@ -20,3 +20,8 @@ exports.setLayerVisibiltyImpl = function(map, layerId, visible) {
     const value = visible ? 'visible' : 'none';
     map.setLayoutProperty(layerId, 'visibility', value);
 };
+
+// exports.setSourceLayerImpl = function(map, sourceId, data) {
+//     var source = map.getSource(sourceId);
+//     source.sourceLayer = data;
+// };

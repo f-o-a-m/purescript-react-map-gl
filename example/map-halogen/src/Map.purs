@@ -6,7 +6,6 @@ module Map
   ) where
 
 import Prelude
-
 import Control.Lazy (fix)
 import Data.Newtype (un)
 import Data.Tuple (snd)
@@ -21,8 +20,6 @@ import MapGL as MapGL
 import React as R
 import Record (disjointUnion)
 
-
-
 data MapMessages
   = OnViewportChange Viewport
   | OnClick ClickInfo
@@ -36,40 +33,41 @@ data Messages
   | PublicMsg MapMessages
 
 --------------------------------------------------------------------------------
+type Props
+  = { messages :: Bus.BusW Messages
+    , width :: Number
+    , height :: Number
+    }
 
-type Props =
-  { messages :: Bus.BusW Messages
-  , width :: Number
-  , height :: Number
-  }
-
-type State =
-  { command :: Bus.BusRW Commands
-  , viewport :: MapGL.Viewport
-  }
+type State
+  = { command :: Bus.BusRW Commands
+    , viewport :: MapGL.Viewport
+    }
 
 mapClass :: R.ReactClass Props
-mapClass = R.component "Map" \this -> do
-  command <- Bus.make
-  { messages, width, height } <- R.getProps this
-  launchAff_ $ Bus.write (IsInitialized $ snd $ Bus.split command) messages
-  pure
-    { componentDidMount: componentDidMount this
-    , componentWillUnmount: componentWillUnmount this
-    , render: render this
-    , state:
-        { viewport: MapGL.Viewport
-          { width
-          , height
-          , longitude: -74.00539284665783
-          , latitude: 40.70544878575082
-          , zoom: 10.822714855509464
-          , pitch: 0.0
-          , bearing: 0.0
+mapClass =
+  R.component "Map" \this -> do
+    command <- Bus.make
+    { messages, width, height } <- R.getProps this
+    launchAff_ $ Bus.write (IsInitialized $ snd $ Bus.split command) messages
+    pure
+      { componentDidMount: componentDidMount this
+      , componentWillUnmount: componentWillUnmount this
+      , render: render this
+      , state:
+          { viewport:
+              MapGL.Viewport
+                { width
+                , height
+                , longitude: -74.00539284665783
+                , latitude: 40.70544878575082
+                , zoom: 10.822714855509464
+                , pitch: 0.0
+                , bearing: 0.0
+                }
+          , command
           }
-        , command
-        }
-    }
+      }
   where
     componentWillUnmount :: R.ReactThis Props State -> R.ComponentWillUnmount
     componentWillUnmount this = R.getState this >>= \{ command } ->
@@ -106,7 +104,6 @@ mapClass = R.component "Map" \this -> do
         , touchRotate: true
         })
         []
-
 
 mapStyle :: String
 mapStyle = "mapbox://styles/mapbox/dark-v9"
