@@ -45,10 +45,10 @@ ui =
         [ HH.slot _map unit Container.mapComponent unit HandleMapUpdate
         ]
 
-  handleAction :: forall o. Action -> H.HalogenM State Action (Slots f) o m Unit
-  handleAction (HandleMapUpdate msg) = do
-    case msg of
-      Map.OnClick info -> H.liftEffect $ log $ show info.lngLat
+    handleAction :: forall o. Action -> H.HalogenM State Action (Slots f) o m Unit
+    handleAction (HandleMapUpdate msg) = do
+      case msg of
+        Map.OnClick info -> H.liftEffect $ log $ show info.lngLat
 
 main :: Effect Unit
 main =
