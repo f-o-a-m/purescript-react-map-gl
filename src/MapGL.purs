@@ -16,7 +16,7 @@ module MapGL
 import Prelude
 import Data.Function.Uncurried (Fn1, runFn1)
 import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
+import Data.Show.Generic (genericShow)
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
 import Data.Nullable (Nullable)

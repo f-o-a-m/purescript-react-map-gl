@@ -69,52 +69,41 @@ mapClass =
           }
       }
   where
-  componentWillUnmount :: R.ReactThis Props State -> R.ComponentWillUnmount
-  componentWillUnmount this =
-    R.getState this
-      >>= \{ command } ->
-          launchAff_
-            $ do
-                props <- liftEffect $ R.getProps this
-                Bus.kill (error "kill from componentWillUnmount") command
+    componentWillUnmount :: R.ReactThis Props State -> R.ComponentWillUnmount
+    componentWillUnmount this = R.getState this >>= \{ command } ->
+      launchAff_ $ do
+        props <- liftEffect $ R.getProps this
+        Bus.kill (error "kill from componentWillUnmount") command
 
-  componentDidMount :: R.ReactThis Props State -> R.ComponentDidMount
-  componentDidMount this = do
-    { command } <- R.getState this
-    launchAff_
-      $ fix \loop -> do
-          msg <- Bus.read command
-          case msg of
-            SetViewport' vp -> liftEffect $ R.modifyState this _ { viewport = vp }
-            AskViewport' var -> liftEffect (R.getState this) >>= \{ viewport } -> AVar.put viewport var
-          loop
+    componentDidMount :: R.ReactThis Props State -> R.ComponentDidMount
+    componentDidMount this = do
+      { command } <- R.getState this
+      launchAff_ $ fix \loop -> do
+        msg <- Bus.read command
+        case msg of
+          SetViewport' vp -> liftEffect $ R.modifyState this _{viewport = vp}
+          AskViewport' var -> liftEffect (R.getState this) >>= \{viewport} -> AVar.put viewport var
+        loop
 
-  render :: R.ReactThis Props State -> R.Render
-  render this = do
-    { messages } <- R.getProps this
-    { viewport } <- R.getState this
-    pure
-      $ R.createElement MapGL.mapGL
-          ( un MapGL.Viewport viewport
-              `disjointUnion`
-                { onViewportChange:
-                    mkEffectFn1
-                      $ \newVp -> do
-                          launchAff_ $ Bus.write (PublicMsg $ OnViewportChange newVp) messages
-                          void $ R.modifyState this _ { viewport = newVp }
-                , onClick:
-                    mkEffectFn1
-                      $ \info -> do
-                          launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages
-                , mapStyle: mapStyle
-                , mapboxApiAccessToken: mapboxApiAccessToken
-                , onLoad: pure unit
-                , dragRotate: true
-                , touchZoom: true
-                , touchRotate: true
-                }
-          )
-          []
+    render :: R.ReactThis Props State -> R.Render
+    render this = do
+      { messages } <- R.getProps this
+      { viewport } <- R.getState this
+      pure $ R.createElement MapGL.mapGL
+        (un MapGL.Viewport viewport `disjointUnion`
+        { onViewportChange: mkEffectFn1 $ \newVp -> do
+            launchAff_ $ Bus.write (PublicMsg $ OnViewportChange newVp) messages
+            void $ R.modifyState this _{viewport = newVp}
+        , onClick: mkEffectFn1 $ \info -> do
+            launchAff_ $ Bus.write (PublicMsg $ OnClick info) messages
+        , mapStyle: mapStyle
+        , mapboxApiAccessToken: mapboxApiAccessToken
+        , onLoad: pure unit
+        , dragRotate: true
+        , touchZoom: true
+        , touchRotate: true
+        })
+        []
 
 mapStyle :: String
 mapStyle = "mapbox://styles/mapbox/dark-v9"
