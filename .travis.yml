@@ -9,11 +9,20 @@ install:
 script:
   - npm run build
   - npm run example-map:build
+  - npm run example-map:bundle-app
+  - npm run example-map:browserify
   - npm run example-map-halogen:build
+  - npm run example-map-halogen:bundle-app
+  - npm run example-map-halogen:browserify
   - npm run example-heatmap-halogen:build
+  - npm run example-heatmap-halogen:bundle-app
+  - npm run example-heatmap-halogen:browserify
   - npm run example-signal-halogen:build
   - npm run example-signal-halogen:bundle-app
   - npm run example-signal-halogen:browserify
+  - npm run example-fillextrusion-halogen:build
+  - npm run example-fillextrusion-halogen:bundle-app
+  - npm run example-fillextrusion-halogen:browserify
 deploy:
   provider: pages
   skip_cleanup: true

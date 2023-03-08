@@ -4,7 +4,8 @@ You can edit this file as you like.
 -}
 { name = "react-map-gl"
 , dependencies =
-  [ "console"
+  [ "affjax-web"
+  , "console"
   , "effect"
   , "foreign"
   , "foreign-object"

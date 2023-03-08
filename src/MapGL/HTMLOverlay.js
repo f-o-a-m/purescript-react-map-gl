@@ -1,3 +1,3 @@
-const MapGL = require('react-map-gl');
+import * as MapGL from 'react-map-gl';
 
-exports.overlay = MapGL.HTMLOverlay;
+export const overlay = MapGL.HTMLOverlay;

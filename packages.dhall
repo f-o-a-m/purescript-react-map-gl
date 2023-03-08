@@ -1,5 +1,6 @@
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.14.3-20210722/packages.dhall sha256:1ceb43aa59436bf5601bac45f6f3781c4e1f0e4c2b8458105b018e5ed8c30f8c
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.7-20230306/packages.dhall
+        sha256:0757626c7422b8b5b5b1d0df3d3628e5deac755d7f89c433a9bf89009787dcbd
 
 let overrides = {=}
 
@@ -7,8 +8,8 @@ let additions =
       { web-mercator =
         { dependencies = [ "partial", "prelude", "functions" ]
         , repo = "https://github.com/f-o-a-m/purescript-web-mercator.git"
-        , version = "v0.14"
+        , version = "purs-0.15"
         }
       }
 
-in  upstream ⫽ overrides ⫽ additions
+in  upstream // overrides // additions

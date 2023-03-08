@@ -7,6 +7,7 @@ module Map
 
 import Prelude
 import Affjax as Affjax
+import Affjax.Web as AffjaxWeb
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Lazy (fix)
 import Data.Either (Either(..), either)
@@ -192,7 +193,7 @@ getMapData ::
   m (Either AjaxError HeatmapDataFeatureCollection)
 getMapData =
   liftAff do
-    resp <- Affjax.get ResponseFormat.string dataUrl
+    resp <- Affjax.get AffjaxWeb.driver ResponseFormat.string dataUrl
     case resp of
       Left err -> pure $ Left $ ResponseError $ Affjax.printError err
       Right { body: str } -> pure $ either (Left <<< DecodingError <<< show) pure (JSON.readJSON str)

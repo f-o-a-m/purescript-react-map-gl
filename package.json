@@ -1,10 +1,11 @@
 {
   "private": true,
   "dependencies": {
-    "purescript": "^0.14.4",
+    "esbuild": "^0.17.11",
+    "purescript": "^0.15.8",
     "react": "^16.13",
     "react-map-gl": "^5.2.8",
-    "spago": "^0.20.3"
+    "spago": "^0.20.9"
   },
   "devDependencies": {
     "browserify": "^16.5.2",
